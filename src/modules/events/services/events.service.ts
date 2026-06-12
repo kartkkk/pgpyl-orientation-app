@@ -16,6 +16,10 @@ interface EventWithAssignments extends Event {
   creator?: { full_name: string } | null;
 }
 
+type EventDetailRow = Event & {
+  creator?: { full_name: string } | { full_name: string }[] | null;
+};
+
 // ─── Read ────────────────────────────────────────────────────────────────────
 
 export async function fetchEvents(
@@ -70,7 +74,9 @@ export async function fetchEventById(id: string): Promise<EventWithAssignments> 
     .single();
 
   if (error) throw new Error(`Failed to load event details: ${error.message}`);
-  return data as EventWithAssignments;
+  const row = data as EventDetailRow;
+  const creator = Array.isArray(row.creator) ? row.creator[0] ?? null : row.creator ?? null;
+  return { ...row, creator } as EventWithAssignments;
 }
 
 export async function fetchMyEvents(page = 1, pageSize = 50): Promise<EventWithSection[]> {
