@@ -1,0 +1,460 @@
+@import "tailwindcss";
+
+@theme {
+  /* Primary brand — PGP YL indigo */
+  --color-primary-50: #EEF2FF;
+  --color-primary-100: #E0E7FF;
+  --color-primary-200: #C7D2FE;
+  --color-primary-300: #A5B4FC;
+  --color-primary-400: #818CF8;
+  --color-primary-500: #4F46E5;
+  --color-primary-600: #4338CA;
+  --color-primary-700: #3730A3;
+  --color-primary-800: #312E81;
+  --color-primary-900: #1E1B4B;
+
+  /* Section Colors (A indigo / B teal) */
+  --color-section-a: #4F46E5;
+  --color-section-b: #0D9488;
+
+  /* Brand accent — warm gold */
+  --color-brand-gold: #F59E0B;
+
+  /* Medal */
+  --color-medal-gold: #F59E0B;
+  --color-medal-silver: #A8B2C1;
+  --color-medal-bronze: #C47B3A;
+
+  /* Neutral */
+  --color-surface-alt: #F3F4F6;
+
+  /* Semantic */
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-error-text: #dc2626;
+  --color-error-wash: #FEE2E2;
+  --color-warning: #f59e0b;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+/* Base styles — mobile-first PWA */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  /* Prevent pull-to-refresh in standalone PWA */
+  overscroll-behavior-y: contain;
+}
+
+/* Safe area padding for PWA standalone mode.
+   Top inset is handled by page-header & mobile-menu via pt-[env(safe-area-inset-top)].
+   Bottom inset is handled by bottom-nav & mobile-menu via pb-[env(safe-area-inset-bottom)].
+   Only left/right body insets are needed (landscape rotation edge case). */
+@supports (padding: env(safe-area-inset-left)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+@keyframes ui-pull-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ui-pull-spin {
+  animation: ui-pull-spin 800ms linear infinite;
+}
+
+.ui-content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 120px;
+}
+
+/* Spring-smooth progress bar animation */
+@keyframes spring-grow {
+  0% {
+    transform: scaleX(0);
+  }
+  60% {
+    transform: scaleX(1.03);
+  }
+  80% {
+    transform: scaleX(0.98);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.animate-spring-grow {
+  animation: spring-grow 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: left;
+}
+
+/* Floating delta label — fades up and out */
+@keyframes float-delta {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float-delta {
+  animation: float-delta 800ms ease-out forwards;
+}
+
+/* Indeterminate refresh bar — slides left-to-right */
+@keyframes refresh-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+/* Card position swap — smooth spring reorder */
+.leaderboard-card {
+  transition: transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 300ms ease;
+}
+
+/* ───────────────── Sorting Hat Ceremony ───────────────── */
+
+/* Slow pendulum rock for the hat idle state */
+@keyframes hat-rock {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+.animate-hat-rock {
+  animation: hat-rock 3s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+/* Star twinkle — slow pulse in size/opacity */
+@keyframes star-twinkle {
+  0%, 100% { opacity: var(--tw-star-base, 0.6); transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.animate-star-twinkle {
+  animation: star-twinkle var(--tw-star-dur, 3s) ease-in-out infinite;
+  animation-delay: var(--tw-star-delay, 0s);
+}
+
+/* Eye blink — quick dim and recover */
+@keyframes hat-blink {
+  0%, 85%, 100% { opacity: 1; }
+  90% { opacity: 0.15; }
+}
+
+.animate-hat-blink-l {
+  animation: hat-blink 4.5s ease-in-out infinite;
+}
+
+.animate-hat-blink-r {
+  animation: hat-blink 5.2s ease-in-out infinite;
+  animation-delay: 1.8s;
+}
+
+/* Progress dot pulse */
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 151, 26, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(200, 151, 26, 0); }
+}
+
+.animate-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+/* Constellation line draw */
+@keyframes line-draw {
+  from { stroke-dashoffset: var(--line-length, 200); }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-line-draw {
+  stroke-dasharray: var(--line-length, 200);
+  stroke-dashoffset: var(--line-length, 200);
+  animation: line-draw var(--line-dur, 0.4s) ease-out forwards;
+  animation-delay: var(--line-delay, 0s);
+}
+
+/* Color flood — circle expanding from center */
+@keyframes flood-expand {
+  from { clip-path: circle(0% at 50% 50%); }
+  to { clip-path: circle(100% at 50% 50%); }
+}
+
+.animate-flood {
+  animation: flood-expand 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Radial burst spoke */
+@keyframes spoke-draw {
+  from { stroke-dashoffset: 500; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-spoke {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: spoke-draw 0.4s ease-out forwards;
+}
+
+/* Trait bar fill */
+@keyframes trait-fill {
+  from { width: 0; }
+}
+
+.animate-trait-fill {
+  animation: trait-fill 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--trait-delay, 0s);
+}
+
+/* Slow text pulse for "tap to see your spells" */
+@keyframes text-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.animate-text-pulse {
+  animation: text-pulse 2.5s ease-in-out infinite;
+}
+
+/* Loading dots stagger */
+@keyframes loading-dot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+.animate-loading-dot {
+  animation: loading-dot 1.4s ease-in-out infinite;
+  animation-delay: var(--dot-delay, 0s);
+}
+
+/* Orb glow ring */
+@keyframes orb-glow {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.08); }
+}
+
+.animate-orb-glow {
+  animation: orb-glow 2s ease-in-out infinite;
+}
+
+/* ── Screen 1 Polish ── */
+
+/* Title clip-path reveal left-to-right */
+@keyframes clip-reveal-ltr {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+.animate-clip-reveal {
+  animation: clip-reveal-ltr 550ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Gold shimmer gradient sweep across text */
+@keyframes gold-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-gold-shimmer {
+  background: linear-gradient(
+    90deg,
+    #C8971A 0%, #C8971A 35%, #EFB834 50%, #C8971A 65%, #C8971A 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gold-shimmer 10s linear infinite;
+}
+
+/* Tagline glow breathing */
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+.animate-glow-breathe {
+  animation: glow-breathe 4s ease-in-out infinite;
+}
+
+/* CTA / Next button border pulse */
+@keyframes border-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-border-pulse {
+  animation: border-pulse 2.5s ease-in-out infinite;
+}
+
+/* Hat warm glow expand — one-shot */
+@keyframes hat-glow-expand {
+  0%  { transform: scale(0.3); opacity: 0.8; }
+  30% { transform: scale(1); opacity: 0.6; }
+  45% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+.animate-hat-glow {
+  animation: hat-glow-expand 900ms ease-out forwards;
+}
+
+/* ── Screen 2 Polish ── */
+
+/* Tile accent bar grow down from top */
+@keyframes accent-grow-down {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.animate-accent-grow {
+  transform-origin: top;
+  animation: accent-grow-down 180ms ease-out forwards;
+}
+
+/* Tile accent bar shrink up on deselection */
+@keyframes accent-shrink-up {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0); }
+}
+
+.animate-accent-shrink {
+  transform-origin: top;
+  animation: accent-shrink-up 120ms ease-in forwards;
+}
+
+/* Selected tile ✦ symbol pulse */
+@keyframes star-mark-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.animate-star-mark-pulse {
+  animation: star-mark-pulse 2s ease-in-out infinite;
+}
+
+/* Progress trail line draw */
+@keyframes progress-line-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.animate-progress-line {
+  transform-origin: left;
+  animation: progress-line-draw 300ms ease-out forwards;
+}
+
+/* Progress dot blaze in */
+@keyframes dot-blaze {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.animate-dot-blaze {
+  animation: dot-blaze 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Checkmark stroke draw */
+@keyframes check-draw {
+  from { stroke-dashoffset: 12; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-check-draw path {
+  stroke-dasharray: 12;
+  stroke-dashoffset: 12;
+  animation: check-draw 250ms ease-out forwards;
+}
+
+/* Rotating dashed arc around active progress dot */
+@keyframes arc-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-arc-rotate {
+  animation: arc-rotate 8s linear infinite;
+}
+
+/* Tile idle breathing */
+@keyframes tile-breathe {
+  0%, 100% { opacity: 0.88; }
+  50% { opacity: 1; }
+}
+
+.animate-tile-breathe {
+  animation: tile-breathe 3s ease-in-out infinite;
+  animation-delay: var(--tile-delay, 0s);
+}
+
+/* ── Reduced Motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all looping animations */
+  .animate-hat-rock,
+  .animate-star-twinkle,
+  .animate-hat-blink-l,
+  .animate-hat-blink-r,
+  .animate-dot-pulse,
+  .animate-gold-shimmer,
+  .animate-glow-breathe,
+  .animate-border-pulse,
+  .animate-star-mark-pulse,
+  .animate-arc-rotate,
+  .animate-text-pulse,
+  .animate-orb-glow,
+  .animate-loading-dot,
+  .animate-tile-breathe {
+    animation: none !important;
+  }
+
+  /* One-shot animations complete instantly */
+  .animate-clip-reveal,
+  .animate-hat-glow,
+  .animate-accent-grow,
+  .animate-accent-shrink,
+  .animate-progress-line,
+  .animate-dot-blaze,
+  .animate-check-draw path,
+  .animate-trait-fill,
+  .animate-spring-grow,
+  .animate-line-draw,
+  .animate-flood {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

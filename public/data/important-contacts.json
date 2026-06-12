@@ -1,0 +1,9 @@
+[
+  { "body_name": "Medical Emergency", "poc_name": "Medical Emergency — 24×7", "phone_number": "9133011972", "email": null, "display_order": 1 },
+  { "body_name": "Duty Manager", "poc_name": "Duty Manager — 24×7", "phone_number": "9731000688", "email": null, "display_order": 2 },
+  { "body_name": "Security Officer", "poc_name": "Security Officer — 24×7", "phone_number": "9618001345", "email": null, "display_order": 3 },
+  { "body_name": "Wellness Centre", "poc_name": "Wellness Centre Direct Line", "phone_number": "040 2318 7222", "email": null, "display_order": 4 },
+  { "body_name": "Housekeeping & Maintenance", "poc_name": "Housekeeping & Maintenance", "phone_number": "040 2318 7070", "email": null, "display_order": 5 },
+  { "body_name": "Student Affairs (ASA)", "poc_name": "Academic & Student Affairs", "phone_number": null, "email": "asa_studentaffairs@isb.edu", "display_order": 6 },
+  { "body_name": "Online Counselling", "poc_name": "deTalks App", "phone_number": null, "email": "https://isb.detalks.com", "display_order": 7 }
+]
