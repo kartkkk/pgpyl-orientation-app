@@ -38,6 +38,45 @@ In the Supabase **SQL editor**, run the migrations in `supabase/migrations/` **i
 order** (`001_…` through `034_…`). Migration `003` seeds **Section A** and **Section B**;
 `034` adds the 6-digit attendance code and 60-second token window.
 
+## 3.1 Simple email login
+
+The default login is Supabase's passwordless email magic link. This is the simplest setup:
+no Microsoft Entra app, no client secret, and no OAuth provider configuration.
+
+In Supabase, go to **Authentication → Providers → Email** and keep the Email provider enabled.
+Then configure these URLs under **Authentication → URL Configuration**:
+
+- Site URL:
+  `https://pgpyl-orientation-app.vercel.app`
+- Additional redirect URL:
+  `https://pgpyl-orientation-app.vercel.app/auth/callback`
+- Local redirect URL for development:
+  `http://localhost:3000/auth/callback`
+
+Students still need to exist in `student_registry`. Anyone outside the registry can receive
+an email link, but the app will block them after sign-in because no profile is created.
+
+### Optional Microsoft login
+
+If you later want the Microsoft button back, the app can use Supabase's **Azure** OAuth
+provider. In Supabase, go to **Authentication → Providers → Azure** and enable it with your
+Microsoft Entra app's client ID and client secret.
+
+Use these URLs:
+
+- Supabase redirect URL to add in Microsoft Entra:
+  `https://<your-project-ref>.supabase.co/auth/v1/callback`
+- Site URL in Supabase:
+  `https://pgpyl-orientation-app.vercel.app`
+- Additional redirect URL in Supabase:
+  `https://pgpyl-orientation-app.vercel.app/auth/callback`
+- Local redirect URL for development:
+  `http://localhost:3000/auth/callback`
+
+If Microsoft sign-in appears to do nothing, check the browser console or Supabase response.
+`Unsupported provider: provider is not enabled` means the Azure provider is still disabled
+or missing credentials in Supabase.
+
 Then:
 
 1. **Sign in once** through the app with each admin's ISB account so their profile row exists.

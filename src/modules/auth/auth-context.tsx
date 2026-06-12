@@ -6,7 +6,6 @@ import { queryClient } from "@/lib/query-client";
 import { useAuthUIStore } from "@/store/auth.store";
 import { useAppStore } from "@/store/app.store";
 import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
-import { signInWithMicrosoft } from "./auth.service";
 import type { Profile, UserRole } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -19,7 +18,6 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-    login: () => Promise<void>;
     logout: () => Promise<void>;
     refreshProfile: () => Promise<void>;
 }
@@ -94,11 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         [fetchProfile, isAdminEmail, verifyRegistryEntry],
     );
-
-    const login = useCallback(async () => {
-        await signInWithMicrosoft();
-        // Full-page redirect — control returns via /auth/callback
-    }, []);
 
     const logout = useCallback(async () => {
         signingOut.current = true;
@@ -183,11 +176,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isLoading,
             isAuthenticated: !!profile,
             role: profile?.role ?? null,
-            login,
             logout,
             refreshProfile,
         }),
-        [profile, isLoading, login, logout, refreshProfile],
+        [profile, isLoading, logout, refreshProfile],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

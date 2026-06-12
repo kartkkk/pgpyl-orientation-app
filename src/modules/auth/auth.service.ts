@@ -35,6 +35,25 @@ export async function signInWithMicrosoft() {
 }
 
 /**
+ * Start passwordless email sign-in via Supabase magic link.
+ * This is the simplest setup: enable the Email provider in Supabase.
+ */
+export async function signInWithEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email: normalizedEmail,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/**
  * Ensure a profile exists for the authenticated user.
  * If the profile doesn't exist yet, create one with the appropriate role.
  */
