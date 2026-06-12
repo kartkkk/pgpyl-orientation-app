@@ -1597,30 +1597,14 @@ const PRO_TIPS: KTSection = {
       ],
     },
     {
-      id: "pt-academics",
-      title: "Academics",
-      content: [
-        {
-          type: "list",
-          items: [
-            "Start thinking about elective priorities early — your 4,500 bidding points are finite",
-            "Check the ISB Atrium archives for the previous year's elective list to get an early sense of what's offered",
-            "Always read the course outline on Day 1 — attendance rules, evaluation weightages, and participation norms vary by faculty",
-            "For the LRC, email the team directly for specific research papers — they usually respond within a day",
-            "Block Weeks are intensive — plan your week in advance, including logbooks and reflection submissions due before midnight",
-          ],
-        },
-      ],
-    },
-    {
       id: "pt-parents",
       title: "Parents & Guests",
       content: [
         {
           type: "list",
           items: [
-            "Book Executive Housing for visiting parents well in advance — it fills up fast around O-Week",
-            "Attend all O-Week orientation sessions — admin will brief you on services and facilities",
+            "Book Executive Housing for visiting parents well in advance — it fills up fast during busy arrival periods",
+            "Attend all orientation sessions — admin will brief you on services and facilities",
           ],
         },
       ],
