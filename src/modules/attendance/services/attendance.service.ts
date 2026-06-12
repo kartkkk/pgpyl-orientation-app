@@ -17,7 +17,7 @@ export async function openSession(eventId: string, userId: string): Promise<Atte
       opened_by: userId,
       is_open: true,
     })
-    .select("*")
+    .select("*, event:events(*)")
     .single();
 
   if (error) throw error;
@@ -44,6 +44,23 @@ export async function closeSession(sessionId: string, userId: string): Promise<A
 
   if (error) throw error;
 
+  // Broadcast session_closed so student devices stop showing the QR.
+  // Fire-and-forget — the DB update is the source of truth; the broadcast is
+  // best-effort notification.  We must subscribe before sending, and use a
+  // unique channel name to avoid colliding with the admin's QR rotation channel.
+  const closeChannel = supabase.channel(`attendance-close:${sessionId}`);
+  closeChannel.subscribe((status) => {
+    if (status === "SUBSCRIBED") {
+      closeChannel
+        .send({
+          type: "broadcast",
+          event: "session_closed",
+          payload: { session_id: sessionId, closed_at: data.closed_at },
+        })
+        .finally(() => supabase.removeChannel(closeChannel));
+    }
+  });
+
   // Fire-and-forget — audit is non-critical
   void writeAttendanceAudit(data.id, data.event_id, "session_closed", userId);
 
@@ -59,7 +76,7 @@ export async function fetchSessionForEvent(
 ): Promise<AttendanceSessionWithEvent | null> {
   const { data, error } = await supabase
     .from("attendance_sessions")
-    .select("*")
+    .select("*, event:events(*)")
     .eq("event_id", eventId)
     .eq("is_open", true)
     .order("opened_at", { ascending: false })
