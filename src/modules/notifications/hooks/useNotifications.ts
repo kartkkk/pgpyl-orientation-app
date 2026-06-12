@@ -7,7 +7,6 @@ import {
   updateNotification,
   deleteNotification,
   cancelNotification,
-  sendNotificationNow,
   NOTIFICATIONS_PAGE_SIZE,
 } from "../services/notifications.service";
 import type { NotificationFormData, NotificationFilters } from "../types";
@@ -51,16 +50,8 @@ export function useCreateNotification() {
   const qc = useQueryClient();
   const { profile } = useAuth();
   return useMutation({
-    // Don't retry — a 422 (no recipients) or 409 (wrong status) won't
-    // succeed on retry and would just keep the spinner spinning.
     retry: false,
-    mutationFn: async (form: NotificationFormData) => {
-      const notif = await createNotification(form, profile!.id);
-      if (!form.scheduled_at) {
-        await sendNotificationNow(notif.id);
-      }
-      return notif;
-    },
+    mutationFn: (form: NotificationFormData) => createNotification(form, profile!.id),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: [NOTIFS_KEY] });
       qc.invalidateQueries({ queryKey: [MY_NOTIFS_KEY] });
@@ -138,4 +129,3 @@ export function useCancelNotification() {
     },
   });
 }
-

@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { QRDisplay } from "@/modules/attendance/components/qr-display";
-import { useEvent } from "@/modules/events/hooks/useEvents";
 import {
   useAttendanceSession,
   useOpenSession,
@@ -34,7 +33,6 @@ export default function AttendancePage({
 function AttendancePageInner({ eventId }: { eventId: string }) {
   const { role } = useAuth();
   const { toast } = useToast();
-  const { data: event } = useEvent(eventId);
   const { data: session, isLoading: sessionLoading } = useAttendanceSession(eventId);
   const openSession = useOpenSession();
   const closeSession = useCloseSession();
@@ -62,7 +60,7 @@ function AttendancePageInner({ eventId }: { eventId: string }) {
 
   return (
     <>
-      <PageHeader title={event?.title || "Attendance"} showBack />
+      <PageHeader title="Attendance" showBack />
 
       <div className="space-y-4 p-4">
         {/* Export button — visible to admins regardless of session state */}
