@@ -186,22 +186,10 @@ const runtimeCaching: RuntimeCaching[] = [
       ],
     }),
   },
-  // Auth routes — always network, never cache
-  {
-    matcher: /\/api\/auth\/.*/,
-    handler: new NetworkOnly({ networkTimeoutSeconds: 10 }),
-  },
-  // Same-origin API routes
+  // API routes — always network, never cache
   {
     matcher: ({ sameOrigin, url: { pathname } }) => sameOrigin && pathname.startsWith("/api/"),
-    method: "GET",
-    handler: new NetworkFirst({
-      cacheName: "apis",
-      plugins: [
-        new ExpirationPlugin({ maxEntries: 16, maxAgeSeconds: 24 * 60 * 60, maxAgeFrom: "last-used" }),
-      ],
-      networkTimeoutSeconds: 10,
-    }),
+    handler: new NetworkOnly({ networkTimeoutSeconds: 10 }),
   },
   // Student Bodies catalog JSON — serve cached instantly, update in background
   // Important Contacts JSON — prefer network freshness with cache fallback
@@ -215,35 +203,15 @@ const runtimeCaching: RuntimeCaching[] = [
       networkTimeoutSeconds: 3,
     }),
   },
-  // RSC prefetch
+  // App pages/RSC — always network. This service worker exists for push
+  // notifications, not offline page caching.
   {
     matcher: ({ request, url: { pathname }, sameOrigin }) =>
-      request.headers.get("RSC") === "1" && request.headers.get("Next-Router-Prefetch") === "1" && sameOrigin && !pathname.startsWith("/api/"),
-    handler: new NetworkFirst({
-      cacheName: PAGES_CACHE_NAME.rscPrefetch,
-      plugins: [new ExpirationPlugin({ maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 })],
-      networkTimeoutSeconds: 5,
-    }),
-  },
-  // RSC
-  {
-    matcher: ({ request, url: { pathname }, sameOrigin }) =>
-      request.headers.get("RSC") === "1" && sameOrigin && !pathname.startsWith("/api/"),
-    handler: new NetworkFirst({
-      cacheName: PAGES_CACHE_NAME.rsc,
-      plugins: [new ExpirationPlugin({ maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 })],
-      networkTimeoutSeconds: 3,
-    }),
-  },
-  // HTML pages
-  {
-    matcher: ({ request, url: { pathname }, sameOrigin }) =>
-      request.headers.get("Content-Type")?.includes("text/html") && sameOrigin && !pathname.startsWith("/api/"),
-    handler: new NetworkFirst({
-      cacheName: PAGES_CACHE_NAME.html,
-      plugins: [new ExpirationPlugin({ maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 })],
-      networkTimeoutSeconds: 3,
-    }),
+      sameOrigin && !pathname.startsWith("/api/") && (
+        request.mode === "navigate" ||
+        request.headers.get("RSC") === "1"
+      ),
+    handler: new NetworkOnly({ networkTimeoutSeconds: 10 }),
   },
   // Supabase — never cache, always hit network. Must be before the
   // same-origin and cross-origin catch-alls so POST requests (e.g.
@@ -255,10 +223,7 @@ const runtimeCaching: RuntimeCaching[] = [
   // Other same-origin requests
   {
     matcher: ({ url: { pathname }, sameOrigin }) => sameOrigin && !pathname.startsWith("/api/"),
-    handler: new NetworkFirst({
-      cacheName: "others",
-      plugins: [new ExpirationPlugin({ maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 })],
-    }),
+    handler: new NetworkOnly({ networkTimeoutSeconds: 10 }),
   },
   // Other cross-origin
   {
@@ -279,7 +244,7 @@ const runtimeCaching: RuntimeCaching[] = [
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
-  skipWaiting: false,
+  skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching,
