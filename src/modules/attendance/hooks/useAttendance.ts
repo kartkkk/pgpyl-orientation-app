@@ -69,10 +69,9 @@ export function useCloseSession() {
   const { profile } = useAuth();
   return useMutation({
     mutationFn: (sessionId: string) => closeSession(sessionId, profile!.id),
-    onSuccess: (_data, sessionId) => {
-      // Invalidate the session query for the parent event
-      qc.invalidateQueries({ queryKey: [ATTENDANCE_SESSION_KEY] });
-      qc.invalidateQueries({ queryKey: [ATTENDANCE_AUDIT_KEY] });
+    onSuccess: (data) => {
+      qc.setQueryData([ATTENDANCE_SESSION_KEY, data.event_id], null);
+      qc.invalidateQueries({ queryKey: [ATTENDANCE_AUDIT_KEY, data.event_id] });
     },
   });
 }

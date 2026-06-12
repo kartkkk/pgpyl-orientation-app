@@ -6,13 +6,13 @@ import { canonicalizeVenueName } from "../venue-metadata";
 // ─── Joined types (returned by select with joins) ────────────────────────────
 
 interface EventWithSection extends Event {
-  event_assignments: (EventAssignment & {
+  event_assignments?: (EventAssignment & {
     section: { id: string; code: string; name: string } | null;
   })[];
 }
 
 interface EventWithAssignments extends Event {
-  event_assignments: EventAssignment[];
+  event_assignments?: EventAssignment[];
   creator?: { full_name: string } | null;
 }
 
@@ -26,7 +26,7 @@ export async function fetchEvents(
   const ascending = filters?.dateFrom ? true : !filters?.past;
   let query = supabase
     .from("events")
-    .select("*, event_assignments(*, section:sections(id, code, name))")
+    .select("id,title,description,venue,starts_at,ends_at,visibility,outlook_event_id,outlook_calendar_id,ical_uid,is_cancelled,created_by,created_at,updated_at")
     .order("starts_at", { ascending });
 
   if (!filters?.includeCancelled) {
@@ -55,14 +55,6 @@ export async function fetchEvents(
     query = query.lt("starts_at", filters.dateTo);
   }
 
-  if (filters?.sectionId) {
-    // Return events visible to a specific section:
-    // visibility = 'all' OR has a matching section assignment
-    query = query.or(
-      `visibility.eq.all,event_assignments.section_id.eq.${filters.sectionId}`,
-    );
-  }
-
   query = query.range((page - 1) * pageSize, page * pageSize - 1);
 
   const { data, error } = await query;
@@ -73,7 +65,7 @@ export async function fetchEvents(
 export async function fetchEventById(id: string): Promise<EventWithAssignments> {
   const { data, error } = await supabase
     .from("events")
-    .select("*, event_assignments(*), creator:profiles!events_created_by_fkey(full_name)")
+    .select("id,title,description,venue,starts_at,ends_at,visibility,outlook_event_id,outlook_calendar_id,ical_uid,is_cancelled,created_by,created_at,updated_at,creator:profiles!events_created_by_fkey(full_name)")
     .eq("id", id)
     .single();
 
@@ -86,7 +78,7 @@ export async function fetchMyEvents(page = 1, pageSize = 50): Promise<EventWithS
   // authenticated user (by section membership or individual assignment).
   const { data, error } = await supabase
     .from("events")
-    .select("*, event_assignments(*, section:sections(id, code, name))")
+    .select("id,title,description,venue,starts_at,ends_at,visibility,outlook_event_id,outlook_calendar_id,ical_uid,is_cancelled,created_by,created_at,updated_at")
     .eq("is_cancelled", false)
     .order("starts_at", { ascending: true })
     .range((page - 1) * pageSize, page * pageSize - 1);
