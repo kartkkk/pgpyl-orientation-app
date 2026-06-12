@@ -1,81 +1,9 @@
 import { supabase } from "@/lib/supabase";
+import { isAdminEmail } from "@/lib/auth-rules";
 import type { UserRole } from "@/types";
-
-/**
- * Auth email rules.
- * - Admins are explicit personal emails.
- * - Students are the PGP YL 2028 cohort emails.
- */
-const DEFAULT_ADMIN_EMAILS = [
-  "karthik_m@isb.edu",
-  "aziz_abdul@isb.edu",
-  "anitha_pothini@isb.edu",
-  "saniya_arora@isb.edu",
-  "tvs_pradeep@isb.edu",
-];
-
-const COHORT_EMAIL_PATTERN =
-  process.env.NEXT_PUBLIC_COHORT_EMAIL_PATTERN || "_pgpyl2028@isb\\.edu$";
-const ADMIN_EMAILS = (
-  process.env.NEXT_PUBLIC_ADMIN_EMAILS || DEFAULT_ADMIN_EMAILS.join(",")
-)
-  .split(",")
-  .map((email) => email.trim().toLowerCase())
-  .filter(Boolean);
-
-const cohortRegex = new RegExp(COHORT_EMAIL_PATTERN, "i");
-
-export function isAdminEmail(email: string): boolean {
-  const normalizedEmail = email.trim().toLowerCase();
-  return ADMIN_EMAILS.includes(normalizedEmail);
-}
-
-export function isCohortEmail(email: string): boolean {
-  return cohortRegex.test(email.trim().toLowerCase());
-}
 
 export function determineRole(email: string): UserRole {
   return isAdminEmail(email) ? "admin" : "student";
-}
-
-/**
- * Start Microsoft OAuth flow via Supabase Azure provider.
- * On web this triggers a full-page redirect — no popup.
- */
-export async function signInWithMicrosoft() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "azure",
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-      scopes: "email profile openid",
-      queryParams: {
-        domain_hint: "isb.edu",
-      },
-    },
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-
-/**
- * Start passwordless email sign-in via Supabase magic link.
- * This is the simplest setup: enable the Email provider in Supabase.
- */
-export async function signInWithEmail(email: string) {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email: normalizedEmail,
-    options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }
 
 /**

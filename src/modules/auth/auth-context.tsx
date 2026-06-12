@@ -6,7 +6,6 @@ import { queryClient } from "@/lib/query-client";
 import { useAuthUIStore } from "@/store/auth.store";
 import { useAppStore } from "@/store/app.store";
 import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
-import { isAdminEmail, isCohortEmail } from "./auth.service";
 import type { Profile, UserRole } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -51,14 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleSignIn = useCallback(
         async (userId: string, email: string | null | undefined) => {
             if (!email) {
-                alert("Your data was not found. Kindly reach out to the O-Week team for assistance.");
-                await supabase.auth.signOut();
-                setProfile(null);
-                window.location.replace("/");
-                return null;
-            }
-
-            if (!isAdminEmail(email) && !isCohortEmail(email)) {
                 alert("Your data was not found. Kindly reach out to the O-Week team for assistance.");
                 await supabase.auth.signOut();
                 setProfile(null);

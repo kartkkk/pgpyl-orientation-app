@@ -29,42 +29,38 @@ Keys in `.env.example`:
 - `NEXT_PUBLIC_FIREBASE_*` + `FIREBASE_SERVICE_ACCOUNT_KEY` — from Firebase (push only)
 - `CRON_SECRET` — `openssl rand -hex 32`
 - `NEXT_PUBLIC_ADMIN_EMAILS` — optional comma-separated override for admin emails.
-- `NEXT_PUBLIC_COHORT_EMAIL_PATTERN` — optional regex override for allowed student emails.
-  The built-in default allows emails ending `_PGPYL2028@isb.edu`.
+- `STUDENT_TEMP_PASSCODE` — first-login passcode for students. Set this only in Vercel/Supabase env.
+- `ADMIN_LOGIN_PASSWORD` — admin login password. Set this only in Vercel/Supabase env.
 - `NEXT_PUBLIC_MEME_WARS_APPS_SCRIPT_URL` — only if you use the Meme Wars submissions flow
 
 ## 3. Supabase database
 
 In the Supabase **SQL editor**, run the migrations in `supabase/migrations/` **in numerical
-order** (`001_…` through `035_…`). Migration `003` seeds **Section A** and **Section B**;
-`034` adds the 6-digit attendance code and 60-second token window. Migration `035` removes
-the student-registry dependency from auth and uses the email rules below.
+order** (`001_…` through `036_…`). Migration `003` seeds **Section A** and **Section B**;
+`034` adds the 6-digit attendance code and 60-second token window. Migration `036` adds
+the approved-students table and PIN-login profile trigger.
 
-## 3.1 Simple email login
+## 3.1 PIN login
 
-The default login is Supabase's passwordless email magic link. This is the simplest setup:
-no Microsoft Entra app, no client secret, and no OAuth provider configuration.
+The default login does not send emails and does not need Microsoft/Azure access.
 
-In Supabase, go to **Authentication → Providers → Email** and keep the Email provider enabled.
-Then configure these URLs under **Authentication → URL Configuration**:
+Students use:
 
-- Site URL:
-  `https://pgpyl-orientation-app.vercel.app`
-- Additional redirect URL:
-  `https://pgpyl-orientation-app.vercel.app/auth/callback`
-- Local redirect URL for development:
-  `http://localhost:3000/auth/callback`
+- First login: ISB email + temporary passcode + create a mandatory 6-digit PIN
+- Future login: ISB email + personal PIN
 
-Access is controlled by email:
+Admins use:
+
+- ISB email + the private `ADMIN_LOGIN_PASSWORD` configured in Vercel
+
+Access is controlled by the approved-students table plus the admin email list:
 
 - Admins:
   `karthik_m@isb.edu`, `aziz_abdul@isb.edu`, `anitha_pothini@isb.edu`,
   `saniya_arora@isb.edu`, `tvs_pradeep@isb.edu`
-- Students/users:
-  any email ending `_PGPYL2028@isb.edu`
+- Students/users: rows in `public.allowed_students`, seeded from the private spreadsheet
 
-Anyone else can receive an email link, but the app will block them after sign-in because no
-profile is created.
+Anyone else is blocked.
 
 ### Optional Microsoft login
 
