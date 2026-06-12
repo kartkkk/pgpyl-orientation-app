@@ -8,12 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { SectionBadge } from "@/components/ui/badge";
 import { useAuth } from "@/modules/auth/auth-context";
 import { useUpdateMyProfile } from "@/modules/profile/hooks/useProfile";
 import { haptics } from "@/lib/haptics";
 import { getInitials } from "@/lib/utils";
-import type { SectionCode } from "@/types";
 
 export default function ProfilePage() {
   const { profile, logout } = useAuth();
@@ -93,12 +91,6 @@ export default function ProfilePage() {
             </h2>
             <p className="text-sm text-muted">{profile.email}</p>
           </div>
-          {profile.section?.code && (
-            <SectionBadge
-              sectionCode={profile.section.code as SectionCode}
-              size="md"
-            />
-          )}
           {profile.roll_number && (
             <p className="text-xs text-muted">Roll: {profile.roll_number}</p>
           )}

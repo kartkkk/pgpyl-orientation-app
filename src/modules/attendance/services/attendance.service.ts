@@ -108,105 +108,46 @@ export async function fetchMyAttendance(
   })[];
 }
 
-// ─── QR Tokens ─────────────────────────────────────────────────────────────
-// Token generation is handled exclusively by the server-side cron function
-// (rotate-qr-token). Client code polls for the latest valid token.
-
-/** The active QR payload: the long token (encoded in the QR) and the short
- *  6-digit manual-entry code shown beneath it. */
-export interface LatestToken {
-  token: string;
-  code: string | null;
-}
+// ─── Attendance Codes ──────────────────────────────────────────────────────
 
 /**
- * Fetches the latest valid (non-expired) QR token for a session.
- * Returns `null` when no valid token exists yet.
- */
-export async function fetchLatestToken(sessionId: string): Promise<LatestToken | null> {
-  const { data, error } = await supabase
-    .from("qr_tokens")
-    .select("token, code")
-    .eq("session_id", sessionId)
-    .gt("valid_until", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data?.token) return null;
-  return { token: data.token, code: data.code ?? null };
-}
-
-/**
- * Validates a scanned QR token and marks attendance for the current user.
- *
- * Uses `supabase.functions.invoke` so the SDK handles auth headers in the
- * exact format the Supabase gateway expects.  The edge function is deployed
- * with `--no-verify-jwt` so the gateway passes the request through and our
- * function code handles auth via a direct GoTrue call.
+ * Validates an attendance code and marks attendance for the current user.
  */
 const MARK_TIMEOUT_MS = 15_000;
 
 type MarkResult = { message: string; event_title?: string; already_recorded?: boolean };
 
-/** Invoke the edge function with a timeout guard. */
-function invokeMarkAttendance(token: string) {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  return Promise.race([
-    supabase.functions.invoke("mark-attendance", { body: { token } }),
-    new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error("Request timed out. Please try again.")),
-        MARK_TIMEOUT_MS,
-      );
-    }),
-  ]).finally(() => clearTimeout(timer));
-}
-
-/** Check whether a functions error is a 401 auth failure. */
-function isAuthError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const ctx = (error as { context?: unknown }).context;
-  return ctx instanceof Response && ctx.status === 401;
-}
-
 export async function markAttendance(token: string): Promise<MarkResult> {
-  let { data, error } = await invokeMarkAttendance(token);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MARK_TIMEOUT_MS);
 
-  // Retry once on auth failure after refreshing the session token.
-  if (isAuthError(error)) {
-    const { error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError) {
-      throw new Error("Session expired. Please log in again.");
+  try {
+    const response = await fetch("/api/attendance/mark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Failed to mark attendance");
     }
-    ({ data, error } = await invokeMarkAttendance(token));
-  }
 
-  if (error) {
-    // FunctionsHttpError stores the raw Response in error.context.
-    // Read the JSON body to get the actual server error message.
-    let serverMessage: string | undefined;
-    try {
-      if (error.context instanceof Response) {
-        const body = await error.context.json();
-        serverMessage = body?.error;
-      }
-    } catch {
-      // Response body not readable or not JSON — fall through
+    if (!data) {
+      throw new Error("No response from server. Please try again.");
     }
-    throw new Error(serverMessage || error.message || "Failed to mark attendance");
-  }
 
-  if (!data) {
-    throw new Error("No response from server. Please try again.");
-  }
+    return data as MarkResult;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out. Please try again.");
+    }
 
-  if (data.error) {
-    throw new Error(data.error);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return data as MarkResult;
 }
 
 // ─── Audit Log ──────────────────────────────────────────────────────────────
@@ -259,10 +200,7 @@ export async function fetchAttendanceAuditLog(
  * Builds an attendance report for an event, listing all relevant students
  * with their present/absent status.
  *
- * The audience is determined by the event's `visibility` scope:
- * - `"all"` → every active student
- * - `"section"` → students in assigned sections only
- * - `"individual"` → individually assigned students only
+ * Attendance is exported for the whole cohort.
  */
 export async function exportAttendanceReport(
   eventId: string,
@@ -287,7 +225,7 @@ export async function exportAttendanceReport(
   const sessionId = sessionsResult.data?.[0]?.id;
 
   // 2. Fetch audience + attendance records in parallel
-  const audiencePromise = fetchAudience(event);
+  const audiencePromise = fetchAudience();
   const recordsPromise = sessionId
     ? supabase
         .from("attendance_records")
@@ -314,7 +252,6 @@ export async function exportAttendanceReport(
       "Full Name": student.full_name,
       "PG ID": student.roll_number ?? "—",
       Email: student.email,
-      Section: student.section?.code ?? "—",
       Status: scannedAt ? "Present" : "Absent",
       "Scanned At": scannedAt
         ? new Date(scannedAt).toLocaleString()
@@ -325,54 +262,13 @@ export async function exportAttendanceReport(
   return { rows, event: event as Event };
 }
 
-/** Resolves the audience for an event based on its visibility scope. */
-async function fetchAudience(
-  event: { visibility: string; event_assignments: { section_id: string | null; profile_id: string | null }[] },
-): Promise<Profile[]> {
-  if (event.visibility === "all") {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*, section:sections(*)")
-      .eq("is_active", true)
-      .eq("role", "student")
-      .order("full_name");
-    if (error) throw error;
-    return (data ?? []) as Profile[];
-  }
-
-  if (event.visibility === "section") {
-    const sectionIds = event.event_assignments
-      .filter((a) => a.section_id !== null)
-      .map((a) => a.section_id!);
-
-    if (sectionIds.length === 0) return [];
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*, section:sections(*)")
-      .eq("is_active", true)
-      .eq("role", "student")
-      .in("section_id", sectionIds)
-      .order("full_name");
-    if (error) throw error;
-    return (data ?? []) as Profile[];
-  }
-
-  if (event.visibility === "individual") {
-    const profileIds = event.event_assignments
-      .filter((a) => a.profile_id !== null)
-      .map((a) => a.profile_id!);
-
-    if (profileIds.length === 0) return [];
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*, section:sections(*)")
-      .in("id", profileIds)
-      .order("full_name");
-    if (error) throw error;
-    return (data ?? []) as Profile[];
-  }
-
-  return [];
+async function fetchAudience(): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("is_active", true)
+    .eq("role", "student")
+    .order("full_name");
+  if (error) throw error;
+  return (data ?? []) as Profile[];
 }

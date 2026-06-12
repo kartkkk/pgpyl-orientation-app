@@ -5,11 +5,10 @@ import { Mail, Phone, Hash, User } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { SectionBadge, StatusBadge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { useAuth } from "@/modules/auth/auth-context";
 import { useStudent } from "@/modules/students/hooks/useStudents";
 import { getInitials } from "@/lib/utils";
-import type { SectionCode } from "@/types";
 
 export default function StudentDetailPage({
   params,
@@ -49,12 +48,6 @@ export default function StudentDetailPage({
             <p className="text-sm text-muted">{student.email}</p>
           </div>
           <div className="flex items-center gap-2">
-            {student.section?.code && (
-              <SectionBadge
-                sectionCode={student.section.code as SectionCode}
-                size="md"
-              />
-            )}
             {showRoleBadge && (
               <StatusBadge
                 status={student.role}

@@ -113,7 +113,7 @@ function AttendancePageInner({ eventId }: { eventId: string }) {
             {/* QR Display */}
             <Card className="flex flex-col items-center py-6">
               <p className="mb-4 text-xs font-medium text-muted uppercase tracking-wide">
-                Scan to mark attendance
+                Share to mark attendance
               </p>
               <QRDisplay token={currentToken} code={currentCode} isActive={isActive} error={qrError} onRetry={retryQR} />
             </Card>
@@ -139,7 +139,7 @@ function AttendancePageInner({ eventId }: { eventId: string }) {
       <ConfirmDialog
         isOpen={showCloseConfirm}
         title="Close Attendance"
-        description="Students will no longer be able to scan this QR code after you close the session."
+        description="Students will no longer be able to use the attendance code after you close the session."
         confirmLabel="Close Session"
         tone="danger"
         isLoading={closeSession.isPending}

@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calendar, Clock, MapPin, Eye, Users, Pencil, Trash2 } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Pencil, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,6 @@ import { useAuth } from "@/modules/auth/auth-context";
 import { haptics } from "@/lib/haptics";
 import { formatDate, formatTime, formatDateTime, isUpcoming } from "@/lib/utils";
 import { getVenueDetails } from "@/modules/events/venue-metadata";
-import type { VisibilityScope } from "@/types";
-
-const VISIBILITY_LABELS: Record<VisibilityScope, string> = {
-  all: "All students",
-  section: "By section",
-  individual: "Specific students",
-};
 
 export default function EventDetailPage({
   params,
@@ -96,11 +89,6 @@ export default function EventDetailPage({
                   <span>{venueLabel}</span>
                 </div>
               )}
-
-              <div className="flex items-center gap-2 text-sm text-muted">
-                <Eye className="h-4 w-4 shrink-0" />
-                <span>{VISIBILITY_LABELS[event.visibility]}</span>
-              </div>
 
               {event.creator?.full_name && (
                 <div className="flex items-center gap-2 text-sm text-muted">

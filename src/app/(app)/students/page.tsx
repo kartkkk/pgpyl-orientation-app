@@ -9,7 +9,6 @@ import { ClearSearchButton } from "@/components/ui/clear-search-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InlineRetry } from "@/components/ui/inline-retry";
 import { ListSkeleton } from "@/components/ui/list-skeleton";
-import { SectionBadge } from "@/components/ui/badge";
 import { PullRefreshShell } from "@/components/ui/pull-refresh-shell";
 import { SearchInput } from "@/components/ui/search-input";
 import { SearchStatusHint } from "@/components/ui/search-status-hint";
@@ -17,7 +16,7 @@ import { useAuth } from "@/modules/auth/auth-context";
 import { useStudents } from "@/modules/students/hooks/useStudents";
 import { getLoadErrorCopy, getSearchHintCopy } from "@/lib/ux-copy";
 import { getInitials, timeAgo } from "@/lib/utils";
-import type { Profile, SectionCode } from "@/types";
+import type { Profile } from "@/types";
 
 export default function StudentsPage() {
   const { role } = useAuth();
@@ -177,9 +176,6 @@ const StudentRow = memo(function StudentRow({ student }: { student: Profile }) {
           </p>
           <p className="truncate text-xs text-muted">{student.email}</p>
         </div>
-        {student.section?.code && (
-          <SectionBadge sectionCode={student.section.code as SectionCode} />
-        )}
       </Card>
     </Link>
   );

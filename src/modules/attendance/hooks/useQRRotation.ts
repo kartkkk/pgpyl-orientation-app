@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { fetchLatestToken } from "../services/attendance.service";
 
 const QR_TOKEN_KEY = "qr-token";
-const POLL_INTERVAL_MS = 5_000;
+const POLL_INTERVAL_MS = 60_000;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -28,11 +27,8 @@ interface UseQRRotationReturn {
 // ─── Hook ──────────────────────────────────────────────────────────────────
 
 /**
- * Polls the `qr_tokens` table for the latest valid token for a session.
- *
- * Token generation is handled exclusively by the server-side cron function
- * (`rotate-qr-token`). All clients — admin and student — poll the same
- * table and display the same QR code.
+ * Creates a fresh attendance code for an open session.
+ * This replaces the Supabase cron rotation so attendance can run from Vercel.
  */
 export function useQRRotation({
   sessionId,
@@ -41,7 +37,20 @@ export function useQRRotation({
 
   const { data = null, error, isSuccess } = useQuery({
     queryKey: [QR_TOKEN_KEY, sessionId],
-    queryFn: () => fetchLatestToken(sessionId!),
+    queryFn: async () => {
+      const response = await fetch("/api/attendance/rotate-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not create attendance code");
+      }
+
+      return payload as { token: string; code: string | null };
+    },
     enabled: !!sessionId,
     refetchInterval: POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,

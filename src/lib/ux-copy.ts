@@ -15,14 +15,14 @@ const SEARCH_HINT_COPY: Record<LoadSurface, string> = {
 };
 
 export const scanCopy = {
-  readyTitle: "Ready to scan",
-  readyBody: "Point your camera at the latest event QR code.",
-  verifyingTitle: "Checking QR code",
+  readyTitle: "Ready for code",
+  readyBody: "Enter the latest 6-digit attendance code.",
+  verifyingTitle: "Checking code",
   verifyingBody: "Please hold still while we verify your attendance.",
   successTitle: "Attendance marked",
-  successBody: "You are checked in. You can scan another code now.",
+  successBody: "You are checked in. You can enter another code if needed.",
   errorTitle: "Could not mark attendance",
-  errorBody: "Use the latest QR code and try again.",
+  errorBody: "Use the latest 6-digit code and try again.",
 } as const;
 
 export function getLoadErrorCopy(surface: LoadSurface): string {
@@ -47,7 +47,7 @@ export function getScanErrorBody(error: unknown): string {
     message.includes("closed") ||
     message.includes("not open")
   ) {
-    return "This QR code is no longer active. Ask the organizer for the latest code.";
+    return "This attendance code is no longer active. Ask the organizer for the latest code.";
   }
 
   return scanCopy.errorBody;

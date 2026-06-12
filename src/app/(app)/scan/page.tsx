@@ -1,27 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Info, XCircle, ScanLine } from "lucide-react";
+import { CheckCircle, Info, XCircle, KeyRound } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import dynamic from "next/dynamic";
 import { haptics } from "@/lib/haptics";
 import { getScanErrorBody, scanCopy } from "@/lib/ux-copy";
 import { useMarkAttendance } from "@/modules/attendance/hooks/useAttendance";
 
-const QRScanner = dynamic(
-  () =>
-    import("@/modules/attendance/components/qr-scanner").then(
-      (m) => m.QRScanner,
-    ),
-  { ssr: false, loading: () => <LoadingSpinner size="lg" /> },
-);
-
 type ScanState =
-  | { step: "idle" }
-  | { step: "scanning" }
   | { step: "manual" }
   | { step: "verifying" }
   | { step: "success"; eventTitle: string | null }
@@ -29,7 +18,7 @@ type ScanState =
   | { step: "error"; message: string };
 
 export default function ScanPage() {
-  const [scan, setScan] = useState<ScanState>({ step: "idle" });
+  const [scan, setScan] = useState<ScanState>({ step: "manual" });
   const [manualCode, setManualCode] = useState("");
   const markAttendance = useMarkAttendance();
 
@@ -69,39 +58,20 @@ export default function ScanPage() {
 
   function reset() {
     setManualCode("");
-    setScan({ step: "idle" });
+    setScan({ step: "manual" });
   }
 
   return (
     <>
-      <PageHeader title="Scan Attendance" showBack />
+      <PageHeader title="Attendance Code" showBack />
 
       <div className="space-y-4 p-4">
-        {scan.step === "idle" && (
-          <>
-            <Card className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-50">
-                <ScanLine className="h-8 w-8 text-primary-500" />
-              </div>
-              <div className="space-y-1">
-                <h2 className="text-base font-semibold">
-                  {scanCopy.readyTitle}
-                </h2>
-                <p className="text-sm text-muted">{scanCopy.readyBody}</p>
-              </div>
-            </Card>
-            <Button onClick={() => setScan({ step: "scanning" })}>
-              Open Scanner
-            </Button>
-            <Button variant="outline" onClick={() => setScan({ step: "manual" })}>
-              Enter 6-digit code
-            </Button>
-          </>
-        )}
-
         {scan.step === "manual" && (
           <div className="space-y-4">
             <Card className="flex flex-col items-center gap-4 py-8 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-50">
+                <KeyRound className="h-8 w-8 text-primary-500" />
+              </div>
               <h2 className="text-base font-semibold">Enter attendance code</h2>
               <p className="text-sm text-muted">
                 Type the 6-digit code shown on the presenter&apos;s screen.
@@ -123,21 +93,6 @@ export default function ScanPage() {
             </Card>
             <Button onClick={handleManualSubmit} disabled={manualCode.length !== 6}>
               Submit code
-            </Button>
-            <Button variant="outline" onClick={reset}>
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        {scan.step === "scanning" && (
-          <div className="space-y-4">
-            <QRScanner onScan={handleScan} />
-            <p className="text-center text-xs text-muted">
-              Keep the QR code centered and steady for a quick scan.
-            </p>
-            <Button variant="outline" onClick={reset}>
-              Cancel
             </Button>
           </div>
         )}

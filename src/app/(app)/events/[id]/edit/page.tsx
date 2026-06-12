@@ -9,13 +9,10 @@ import { Card } from "@/components/ui/card";
 import { VenueInput } from "@/components/ui/venue-input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useEvent, useUpdateEvent } from "@/modules/events/hooks/useEvents";
-import { useSectionMap } from "@/modules/students/hooks/useStudents";
 import { getFriendlyErrorMessage } from "@/lib/utils";
-import { SECTIONS, SECTION_CODES } from "@/lib/constants";
 import { haptics } from "@/lib/haptics";
 import type { EventFormData } from "@/modules/events/types";
 import { canonicalizeVenueName, getVenueDetails } from "@/modules/events/venue-metadata";
-import type { VisibilityScope } from "@/types";
 
 function toDatetimeLocal(iso: string): string {
   const date = new Date(iso);
@@ -33,13 +30,9 @@ export default function EditEventPage({
   const router = useRouter();
   const { data: event, isLoading } = useEvent(id);
   const updateEvent = useUpdateEvent();
-  const sectionMap = useSectionMap();
 
   const initialForm = useMemo(() => {
     if (!event) return null;
-    const sectionIds = (event.event_assignments ?? [])
-      .filter((a) => a.section_id !== null)
-      .map((a) => a.section_id as string);
 
     return {
       title: event.title,
@@ -47,8 +40,8 @@ export default function EditEventPage({
       venue: canonicalizeVenueName(event.venue) ?? "",
       starts_at: toDatetimeLocal(event.starts_at),
       ends_at: event.ends_at ? toDatetimeLocal(event.ends_at) : "",
-      visibility: event.visibility,
-      section_ids: sectionIds,
+      visibility: "all" as const,
+      section_ids: [],
       profile_ids: [],
     };
   }, [event]);
@@ -70,18 +63,6 @@ export default function EditEventPage({
   const update = (field: keyof EventFormData, value: unknown) =>
     setFormDraft((prev) => ({ ...(prev ?? form), [field]: value }));
 
-  const toggleSection = (sectionId: string) => {
-    setFormDraft((prev) => {
-      const nextForm = prev ?? form;
-      return {
-        ...nextForm,
-        section_ids: nextForm.section_ids.includes(sectionId)
-          ? nextForm.section_ids.filter((sid) => sid !== sectionId)
-          : [...nextForm.section_ids, sectionId],
-      };
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (updateEvent.isPending) return;
@@ -91,6 +72,9 @@ export default function EditEventPage({
         id,
         updates: {
           ...form,
+          visibility: "all",
+          section_ids: [],
+          profile_ids: [],
           starts_at: new Date(form.starts_at).toISOString(),
           ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : "",
         },
@@ -104,8 +88,7 @@ export default function EditEventPage({
 
   const isValid =
     form.title.trim() &&
-    form.starts_at &&
-    (form.visibility !== "section" || form.section_ids.length > 0);
+    form.starts_at;
   const selectedVenueDetails = getVenueDetails(form.venue);
 
   return (
@@ -176,62 +159,6 @@ export default function EditEventPage({
           value={form.ends_at}
           onChange={(e) => update("ends_at", e.target.value)}
         />
-
-        {/* Visibility */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground">
-            Visibility
-          </label>
-          <div className="flex gap-2">
-            {(["all", "section"] as VisibilityScope[]).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => update("visibility", v)}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium capitalize transition-colors ${
-                  form.visibility === v
-                    ? "bg-primary-500 text-white"
-                    : "bg-gray-100 text-muted"
-                }`}
-              >
-                {v === "all" ? "Everyone" : "By Section"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Section selector */}
-        {form.visibility === "section" && (
-          <Card className="space-y-2">
-            <p className="text-xs font-medium text-muted">Select sections</p>
-            <div className="flex flex-wrap gap-2">
-              {SECTION_CODES.map((code) => {
-                const entry = sectionMap.get(code);
-                if (!entry) return null;
-                const meta = SECTIONS[code];
-                const isSelected = form.section_ids.includes(entry.id);
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => toggleSection(entry.id)}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      isSelected ? "text-white" : "bg-gray-100 text-muted"
-                    }`}
-                    style={
-                      isSelected
-                        ? { backgroundColor: meta.color }
-                        : undefined
-                    }
-                  >
-                    <span>{meta.emoji}</span>
-                    <span>{meta.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
-        )}
 
         {updateEvent.isError && (
           <p className="text-sm text-error">

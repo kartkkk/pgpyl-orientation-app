@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { RefreshCw } from "lucide-react";
 import { QR_ROTATION_INTERVAL_MS } from "@/lib/constants";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -42,7 +41,7 @@ export function QRDisplay({ token, code, isActive, error, onRetry }: QRDisplayPr
     if (error) {
         return (
             <div className="flex flex-col items-center justify-center gap-3 py-8">
-                <p className="text-sm font-medium text-error">QR code generation failed</p>
+                <p className="text-sm font-medium text-error">Attendance code generation failed</p>
                 <p className="max-w-xs text-center text-xs text-muted">{error.message}</p>
                 {onRetry && (
                     <Button variant="outline" onClick={onRetry}>
@@ -58,27 +57,27 @@ export function QRDisplay({ token, code, isActive, error, onRetry }: QRDisplayPr
         return (
             <div className="flex flex-col items-center justify-center gap-3 py-8">
                 <LoadingSpinner size="lg" />
-                <p className="text-sm text-muted">Generating QR code...</p>
+                <p className="text-sm text-muted">Generating attendance code...</p>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col items-center gap-4">
-            <div className="rounded-2xl bg-white p-4 shadow-lg">
-                <QRCodeSVG value={token} size={240} level="M" bgColor="#ffffff" fgColor="#000000" />
-            </div>
-
+        <div className="flex flex-col items-center gap-5">
             {code && (
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex flex-col items-center gap-2 rounded-2xl bg-primary-50 px-7 py-6">
                     <span className="text-xs font-medium uppercase tracking-wide text-muted">
-                        Or enter code
+                        Attendance code
                     </span>
-                    <span className="font-mono text-3xl font-bold tracking-[0.3em] text-primary-600">
+                    <span className="font-mono text-5xl font-bold tracking-[0.22em] text-primary-600">
                         {code}
                     </span>
                 </div>
             )}
+
+            <p className="max-w-xs text-center text-sm text-muted">
+                Ask students to open Attendance Code and enter this 6-digit code.
+            </p>
 
             <div className="flex items-center gap-2">
                 <div className={`h-2 w-2 rounded-full ${isActive ? "bg-success animate-pulse" : "bg-muted"}`} />

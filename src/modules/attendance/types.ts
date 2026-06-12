@@ -20,7 +20,6 @@ export interface AttendanceExportRow {
   "Full Name": string;
   "PG ID": string;
   Email: string;
-  Section: string;
   Status: "Present" | "Absent";
   "Scanned At": string;
 }

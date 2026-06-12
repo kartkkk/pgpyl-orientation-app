@@ -18,7 +18,6 @@ import { InlineRetry } from "@/components/ui/inline-retry";
 import { ListSkeleton } from "@/components/ui/list-skeleton";
 import { PullRefreshShell } from "@/components/ui/pull-refresh-shell";
 import { SearchInput } from "@/components/ui/search-input";
-import { StatusBadge } from "@/components/ui/badge";
 import { useDocuments, useMyDocuments } from "@/modules/documents/hooks/useDocuments";
 import { useAuth } from "@/modules/auth/auth-context";
 import { timeAgo } from "@/lib/utils";
@@ -257,12 +256,9 @@ export default function DocumentsPage() {
                               {doc.description}
                             </p>
                           )}
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <StatusBadge status={doc.visibility} />
-                            <span className="text-xs text-muted">
-                              {timeAgo(doc.created_at)}
-                            </span>
-                          </div>
+                          <p className="mt-1.5 text-xs text-muted">
+                            {timeAgo(doc.created_at)}
+                          </p>
                         </div>
                         <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
                       </Card>
@@ -318,12 +314,9 @@ export default function DocumentsPage() {
                                 {doc.description}
                               </p>
                             )}
-                            <div className="mt-1.5 flex items-center gap-2">
-                              <StatusBadge status={doc.visibility} />
-                              <span className="text-xs text-muted">
-                                {timeAgo(doc.created_at)}
-                              </span>
-                            </div>
+                            <p className="mt-1.5 text-xs text-muted">
+                              {timeAgo(doc.created_at)}
+                            </p>
                           </div>
                           <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
                         </Card>
