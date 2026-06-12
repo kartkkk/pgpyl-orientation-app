@@ -1,2 +1,0 @@
--- Reverted: delegated calendar sync approach abandoned.
--- See 022_cleanup_columns.sql for column cleanup.
