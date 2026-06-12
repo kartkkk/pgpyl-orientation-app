@@ -2,15 +2,40 @@ import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@/types";
 
 /**
- * Determine user role based on email pattern.
- * Admin pattern is configurable via NEXT_PUBLIC_ADMIN_EMAIL_PATTERN.
+ * Auth email rules.
+ * - Admins are explicit personal emails.
+ * - Students are the PGP YL 2028 cohort emails.
  */
-const ADMIN_EMAIL_PATTERN =
-  process.env.NEXT_PUBLIC_ADMIN_EMAIL_PATTERN || "_pgp\\d{4}@isb\\.edu$";
-const adminRegex = new RegExp(ADMIN_EMAIL_PATTERN, "i");
+const DEFAULT_ADMIN_EMAILS = [
+  "karthik_m@isb.edu",
+  "aziz_abdul@isb.edu",
+  "anitha_pothini@isb.edu",
+  "saniya_arora@isb.edu",
+  "tvs_pradeep@isb.edu",
+];
+
+const COHORT_EMAIL_PATTERN =
+  process.env.NEXT_PUBLIC_COHORT_EMAIL_PATTERN || "_pgpyl2028@isb\\.edu$";
+const ADMIN_EMAILS = (
+  process.env.NEXT_PUBLIC_ADMIN_EMAILS || DEFAULT_ADMIN_EMAILS.join(",")
+)
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
+
+const cohortRegex = new RegExp(COHORT_EMAIL_PATTERN, "i");
+
+export function isAdminEmail(email: string): boolean {
+  const normalizedEmail = email.trim().toLowerCase();
+  return ADMIN_EMAILS.includes(normalizedEmail);
+}
+
+export function isCohortEmail(email: string): boolean {
+  return cohortRegex.test(email.trim().toLowerCase());
+}
 
 export function determineRole(email: string): UserRole {
-  return adminRegex.test(email.toLowerCase()) ? "admin" : "student";
+  return isAdminEmail(email) ? "admin" : "student";
 }
 
 /**

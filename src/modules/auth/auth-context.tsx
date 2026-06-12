@@ -6,6 +6,7 @@ import { queryClient } from "@/lib/query-client";
 import { useAuthUIStore } from "@/store/auth.store";
 import { useAppStore } from "@/store/app.store";
 import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
+import { isAdminEmail, isCohortEmail } from "./auth.service";
 import type { Profile, UserRole } from "@/types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -47,19 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return data as Profile | null;
     }, []);
 
-    const verifyRegistryEntry = useCallback(async (email: string) => {
-        const normalizedEmail = email.toLowerCase();
-        const { data } = await supabase
-            .from("student_registry")
-            .select("email")
-            .eq("email", normalizedEmail)
-            .maybeSingle();
-
-        return Boolean(data);
-    }, []);
-
-    const isAdminEmail = useCallback((email: string) => /_pgp2026@isb\.edu$/i.test(email), []);
-
     const handleSignIn = useCallback(
         async (userId: string, email: string | null | undefined) => {
             if (!email) {
@@ -70,27 +58,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return null;
             }
 
-            if (!isAdminEmail(email)) {
-                const isWhitelisted = await verifyRegistryEntry(email);
-                if (!isWhitelisted) {
-                    alert("Your data was not found. Kindly reach out to the O-Week team for assistance.");
-                    await supabase.auth.signOut();
-                    setProfile(null);
-                    window.location.replace("/");
-                    return null;
-                }
+            if (!isAdminEmail(email) && !isCohortEmail(email)) {
+                alert("Your data was not found. Kindly reach out to the O-Week team for assistance.");
+                await supabase.auth.signOut();
+                setProfile(null);
+                window.location.replace("/");
+                return null;
             }
 
             const existing = await fetchProfile(userId);
             if (existing) return existing;
 
-            alert("Your data was not found. Kindly reach out to the O-Week team for assistance.");
+            alert("Your profile is not ready yet. Kindly reach out to the O-Week team for assistance.");
             await supabase.auth.signOut();
             setProfile(null);
             window.location.replace("/");
             return null;
         },
-        [fetchProfile, isAdminEmail, verifyRegistryEntry],
+        [fetchProfile],
     );
 
     const logout = useCallback(async () => {

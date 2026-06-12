@@ -28,15 +28,17 @@ Keys in `.env.example`:
 - `SUPABASE_SERVICE_ROLE_KEY` — same page (server-only, keep secret)
 - `NEXT_PUBLIC_FIREBASE_*` + `FIREBASE_SERVICE_ACCOUNT_KEY` — from Firebase (push only)
 - `CRON_SECRET` — `openssl rand -hex 32`
-- `NEXT_PUBLIC_ADMIN_EMAIL_PATTERN` — regex that marks an email as admin. **Update this
-  to match your YL admin addresses** (the default `_pgp\d{4}@isb.edu$` is from the old app).
+- `NEXT_PUBLIC_ADMIN_EMAILS` — optional comma-separated override for admin emails.
+- `NEXT_PUBLIC_COHORT_EMAIL_PATTERN` — optional regex override for allowed student emails.
+  The built-in default allows emails ending `_PGPYL2028@isb.edu`.
 - `NEXT_PUBLIC_MEME_WARS_APPS_SCRIPT_URL` — only if you use the Meme Wars submissions flow
 
 ## 3. Supabase database
 
 In the Supabase **SQL editor**, run the migrations in `supabase/migrations/` **in numerical
-order** (`001_…` through `034_…`). Migration `003` seeds **Section A** and **Section B**;
-`034` adds the 6-digit attendance code and 60-second token window.
+order** (`001_…` through `035_…`). Migration `003` seeds **Section A** and **Section B**;
+`034` adds the 6-digit attendance code and 60-second token window. Migration `035` removes
+the student-registry dependency from auth and uses the email rules below.
 
 ## 3.1 Simple email login
 
@@ -53,8 +55,16 @@ Then configure these URLs under **Authentication → URL Configuration**:
 - Local redirect URL for development:
   `http://localhost:3000/auth/callback`
 
-Students still need to exist in `student_registry`. Anyone outside the registry can receive
-an email link, but the app will block them after sign-in because no profile is created.
+Access is controlled by email:
+
+- Admins:
+  `karthik_m@isb.edu`, `aziz_abdul@isb.edu`, `anitha_pothini@isb.edu`,
+  `saniya_arora@isb.edu`, `tvs_pradeep@isb.edu`
+- Students/users:
+  any email ending `_PGPYL2028@isb.edu`
+
+Anyone else can receive an email link, but the app will block them after sign-in because no
+profile is created.
 
 ### Optional Microsoft login
 
@@ -79,14 +89,7 @@ or missing credentials in Supabase.
 
 Then:
 
-1. **Sign in once** through the app with each admin's ISB account so their profile row exists.
-2. **Promote admins** (Supabase SQL editor):
-   ```sql
-   UPDATE public.profiles
-   SET role = 'admin', section_id = NULL
-   WHERE email IN ('youradmin1@isb.edu', 'youradmin2@isb.edu');
-   ```
-3. **Seed the schedule** — run `supabase/seed/oweek_schedule_seed.sql` once. It auto-assigns
+1. **Seed the schedule** — run `supabase/seed/oweek_schedule_seed.sql` once. It auto-assigns
    events to your earliest admin and skips if O-Week events already exist.
 
 ## 4. Edge functions + QR rotation cron
