@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
-import type { AttendanceSession, AttendanceRecord, AttendanceAuditAction, AttendanceAuditLog, Event, Profile } from "@/types";
-import type { AttendanceSessionWithEvent, AttendanceExportRow } from "../types";
+import type { AttendanceSession, AttendanceRecord, AttendanceAuditAction, AttendanceAuditLog } from "@/types";
+import type { AttendanceSessionWithEvent } from "../types";
 
 // ─── Sessions ──────────────────────────────────────────────────────────────
 
@@ -192,83 +192,4 @@ export async function fetchAttendanceAuditLog(
 
   if (error) throw error;
   return (data ?? []) as AttendanceAuditLog[];
-}
-
-// ─── Export ────────────────────────────────────────────────────────────────
-
-/**
- * Builds an attendance report for an event, listing all relevant students
- * with their present/absent status.
- *
- * Attendance is exported for the whole cohort.
- */
-export async function exportAttendanceReport(
-  eventId: string,
-): Promise<{ rows: AttendanceExportRow[]; event: Event }> {
-  // 1. Fetch event + latest session in parallel (independent queries)
-  const [eventResult, sessionsResult] = await Promise.all([
-    supabase
-      .from("events")
-      .select("*, event_assignments(*)")
-      .eq("id", eventId)
-      .single(),
-    supabase
-      .from("attendance_sessions")
-      .select("id")
-      .eq("event_id", eventId)
-      .order("opened_at", { ascending: false })
-      .limit(1),
-  ]);
-
-  if (eventResult.error || !eventResult.data) throw new Error("Event not found");
-  const event = eventResult.data;
-  const sessionId = sessionsResult.data?.[0]?.id;
-
-  // 2. Fetch audience + attendance records in parallel
-  const audiencePromise = fetchAudience();
-  const recordsPromise = sessionId
-    ? supabase
-        .from("attendance_records")
-        .select("profile_id, scanned_at")
-        .eq("session_id", sessionId)
-    : Promise.resolve({ data: [] as { profile_id: string; scanned_at: string }[] });
-
-  const [audience, recordsResult] = await Promise.all([audiencePromise, recordsPromise]);
-
-  if ("error" in recordsResult && recordsResult.error) {
-    throw new Error(`Failed to load attendance records: ${recordsResult.error.message}`);
-  }
-
-  const attendanceMap = new Map<string, string>();
-  const records = ("data" in recordsResult ? recordsResult.data : recordsResult) ?? [];
-  for (const r of records) {
-    attendanceMap.set(r.profile_id, r.scanned_at);
-  }
-
-  // 3. Build export rows
-  const rows: AttendanceExportRow[] = audience.map((student) => {
-    const scannedAt = attendanceMap.get(student.id);
-    return {
-      "Full Name": student.full_name,
-      "PG ID": student.roll_number ?? "—",
-      Email: student.email,
-      Status: scannedAt ? "Present" : "Absent",
-      "Scanned At": scannedAt
-        ? new Date(scannedAt).toLocaleString()
-        : "—",
-    };
-  });
-
-  return { rows, event: event as Event };
-}
-
-async function fetchAudience(): Promise<Profile[]> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("is_active", true)
-    .eq("role", "student")
-    .order("full_name");
-  if (error) throw error;
-  return (data ?? []) as Profile[];
 }

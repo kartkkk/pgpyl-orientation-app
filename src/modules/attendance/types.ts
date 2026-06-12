@@ -13,13 +13,3 @@ export interface AttendanceStats {
   present: number;
   percentage: number;
 }
-
-// ─── Attendance Export ─────────────────────────────────────────────────────
-
-export interface AttendanceExportRow {
-  "Full Name": string;
-  "PG ID": string;
-  Email: string;
-  Status: "Present" | "Absent";
-  "Scanned At": string;
-}

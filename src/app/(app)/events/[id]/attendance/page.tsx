@@ -70,7 +70,23 @@ function AttendancePageInner({ eventId }: { eventId: string }) {
           <Button
             variant="outline"
             loading={exportAttendance.isPending}
-            onClick={() => exportAttendance.mutate(eventId)}
+            onClick={() =>
+              exportAttendance.mutate(eventId, {
+                onSuccess: () => {
+                  haptics.success();
+                  toast("Attendance export downloaded");
+                },
+                onError: (err) => {
+                  haptics.error();
+                  toast(
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to export attendance",
+                    "error",
+                  );
+                },
+              })
+            }
           >
             <Download className="mr-2 h-4 w-4" />
             Export Attendance

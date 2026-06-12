@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import Papa from "papaparse";
 import {
   openSession,
   closeSession,
@@ -7,7 +6,6 @@ import {
   markAttendance,
   fetchMyAttendance,
   fetchAttendanceAuditLog,
-  exportAttendanceReport,
 } from "../services/attendance.service";
 import { useAuth } from "@/modules/auth/auth-context";
 
@@ -112,24 +110,25 @@ export function useMarkAttendance() {
 export function useExportAttendance() {
   return useMutation({
     mutationFn: async (eventId: string) => {
-      const { rows, event } = await exportAttendanceReport(eventId);
+      const response = await fetch(`/api/attendance/export?event_id=${encodeURIComponent(eventId)}`);
 
-      // Generate CSV using papaparse
-      const csv = Papa.unparse(rows);
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.error || "Failed to export attendance");
+      }
 
-      // Trigger browser download
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const blob = await response.blob();
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-
-      const dateStr = new Date(event.starts_at).toISOString().slice(0, 10);
-      const safeTitle = event.title.replace(/[^a-zA-Z0-9-_ ]/g, "").trim();
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "attendance.csv";
       link.href = url;
-      link.download = `attendance-${safeTitle}-${dateStr}.csv`;
+      link.download = filename;
       link.click();
-
       URL.revokeObjectURL(url);
-      return { count: rows.length };
+
+      return { ok: true };
     },
   });
 }

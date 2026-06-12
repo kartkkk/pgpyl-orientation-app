@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useSessionKeepAlive();
 
     const fetchProfile = useCallback(async (userId: string) => {
-        const { data } = await supabase.from("profiles").select("*, section:sections(*)").eq("id", userId).single();
+        const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
         if (data) setProfile(data as Profile);
         return data as Profile | null;
     }, []);
