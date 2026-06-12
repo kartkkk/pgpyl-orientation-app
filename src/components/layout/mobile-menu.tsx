@@ -13,7 +13,6 @@ import {
   Phone,
   UsersRound,
   LogOut,
-  ImagePlus,
 } from "lucide-react";
 
 interface MenuItem {
@@ -26,7 +25,6 @@ const MENU_ITEMS: MenuItem[] = [
   { href: "/scan", label: "Scan Attendance", icon: ScanLine },
   { href: "/students", label: "Students & Staff", icon: UsersRound },
   { href: "/contacts", label: "Emergency Contacts", icon: Phone },
-  { href: "/meme-wars-submissions", label: "Meme Wars Submissions", icon: ImagePlus },
   { href: "/profile", label: "Profile", icon: User },
 ];
 

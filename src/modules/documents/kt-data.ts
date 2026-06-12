@@ -1898,10 +1898,7 @@ const RESOURCE_GUIDE: KTSection = {
 };
 
 export const KT_SECTIONS: KTSection[] = [
-  RESOURCE_GUIDE,
-  ACADEMICS,
   STUDENT_LIFE,
-  O_WEEK,
   CAMPUS_OPS,
   PRO_TIPS,
 ];

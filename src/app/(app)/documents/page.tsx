@@ -6,7 +6,6 @@ import {
   ExternalLink,
   FileText,
   BookOpen,
-  Scale,
   MapPin,
   ChevronRight,
 } from "lucide-react";
@@ -24,12 +23,10 @@ import { useDocuments, useMyDocuments } from "@/modules/documents/hooks/useDocum
 import { useAuth } from "@/modules/auth/auth-context";
 import { timeAgo } from "@/lib/utils";
 import { buildSearchIndex } from "@/modules/documents/kt-data";
-import { buildRulebookSearchIndex } from "@/modules/documents/rulebook-data";
 
 // ─── Search Indexes (built once) ───
 
 const ktSearchIndex = buildSearchIndex();
-const rulebookSearchIndex = buildRulebookSearchIndex();
 
 // ─── Resource Hub Cards ───
 
@@ -47,19 +44,10 @@ const HUB_CARDS: HubCard[] = [
   {
     href: "/documents/kt",
     label: "KT Guide",
-    description: "Everything you need to know — academics, campus life, contacts & tips",
+    description: "Campus life, operations, contacts and practical tips",
     icon: BookOpen,
     gradient: "from-primary-50 to-blue-50",
     iconColor: "text-primary-500",
-    ready: true,
-  },
-  {
-    href: "/documents/rulebook",
-    label: "Section Wars Rulebook",
-    description: "Section Wars rules, scoring & guidelines",
-    icon: Scale,
-    gradient: "from-amber-50 to-orange-50",
-    iconColor: "text-amber-600",
     ready: true,
   },
   {
@@ -172,46 +160,6 @@ function KTSearchResultsList({ query }: { query: string }) {
   );
 }
 
-// ─── Rulebook Search Results ───
-
-function RulebookSearchResultsList({ query }: { query: string }) {
-  const results = useMemo(() => {
-    if (!query) return [];
-    return rulebookSearchIndex.filter((entry) => entry.text.includes(query));
-  }, [query]);
-
-  if (results.length === 0) return null;
-
-  return (
-    <div className="space-y-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-        Section Wars Rulebook
-      </p>
-      {results.map((r) => (
-        <Link
-          key={r.subsectionId}
-          href={`/documents/rulebook?section=${r.sectionId}&sub=${r.subsectionId}`}
-        >
-          <Card interactive className="flex items-center gap-3 my-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-              <Scale className="h-4 w-4 text-amber-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {r.subsectionTitle}
-              </p>
-              <p className="text-xs text-muted">
-                {r.sectionEmoji} {r.sectionTitle}
-              </p>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
-          </Card>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 // ─── Main Page ───
 
 export default function DocumentsPage() {
@@ -252,9 +200,8 @@ export default function DocumentsPage() {
 
   const hasSearchQuery = normalizedSearch.length > 0;
   const hasKtResults = hasSearchQuery && ktSearchIndex.some((e) => e.text.includes(normalizedSearch));
-  const hasRulebookResults = hasSearchQuery && rulebookSearchIndex.some((e) => e.text.includes(normalizedSearch));
   const hasDocResults = (filteredDocuments?.length ?? 0) > 0;
-  const hasAnyResults = hasKtResults || hasRulebookResults || hasDocResults;
+  const hasAnyResults = hasKtResults || hasDocResults;
 
   return (
     <>
@@ -285,9 +232,6 @@ export default function DocumentsPage() {
 
               {/* KT results */}
               <KTSearchResultsList query={normalizedSearch} />
-
-              {/* Rulebook results */}
-              <RulebookSearchResultsList query={normalizedSearch} />
 
               {/* Admin-uploaded doc results */}
               {hasDocResults && (

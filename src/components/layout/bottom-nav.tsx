@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Trophy, Bell, FileText, MoreHorizontal } from "lucide-react";
+import { Calendar, Bell, FileText, MoreHorizontal } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -14,7 +14,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/events", label: "Events", icon: Calendar, matchPrefix: "/events" },
-  { href: "/wars", label: "Wars", icon: Trophy, matchPrefix: "/wars", fillOnActive: true },
   { href: "/alerts", label: "Alerts", icon: Bell, matchPrefix: "/alerts" },
   { href: "/documents", label: "Resources", icon: FileText, matchPrefix: "/documents" },
 ];
