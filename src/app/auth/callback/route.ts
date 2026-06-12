@@ -13,10 +13,6 @@ export async function GET(request: Request) {
   // Validate next param to prevent open redirect
   const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/events";
 
-  if (!code && (!tokenHash || !type)) {
-    return NextResponse.redirect(`${origin}/?error=missing_code`);
-  }
-
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,15 +31,25 @@ export async function GET(request: Request) {
     },
   );
 
-  const { error } = code
-    ? await supabase.auth.exchangeCodeForSession(code)
-    : await supabase.auth.verifyOtp({
-        token_hash: tokenHash!,
-        type,
-      });
+  let authError: { message: string } | null = null;
 
-  if (error) {
-    console.error("[Auth] Code exchange failed:", error.message);
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    authError = error;
+  } else {
+    if (!tokenHash || !type) {
+      return NextResponse.redirect(`${origin}/?error=missing_code`);
+    }
+
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+    authError = error;
+  }
+
+  if (authError) {
+    console.error("[Auth] Code exchange failed:", authError.message);
     return NextResponse.redirect(`${origin}/?error=auth`);
   }
 
