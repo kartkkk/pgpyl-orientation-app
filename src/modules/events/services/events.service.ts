@@ -96,19 +96,44 @@ export async function fetchMyEvents(page = 1, pageSize = 50): Promise<EventWithS
 // ─── Write ───────────────────────────────────────────────────────────────────
 
 export async function createEvent(form: EventFormData, userId: string): Promise<EventWithAssignments> {
-  void userId;
-  const response = await fetch("/api/events/create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
-  });
+  const venue = canonicalizeVenueName(form.venue);
 
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to create event");
+  // 1. Insert the event row
+  const { data: event, error: eventError } = await supabase
+    .from("events")
+    .insert({
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      venue,
+      starts_at: form.starts_at,
+      ends_at: form.ends_at || null,
+      visibility: form.visibility,
+      created_by: userId,
+    })
+    .select("*")
+    .single();
+
+  if (eventError) throw new Error(`Failed to create event: ${eventError.message}`);
+
+  // 2. Build assignment rows based on visibility scope
+  const assignments = buildAssignmentRows(
+    event.id,
+    form.visibility,
+    form.section_ids,
+    form.profile_ids,
+  );
+
+  if (assignments.length > 0) {
+    const { data: inserted, error: assignError } = await supabase
+      .from("event_assignments")
+      .insert(assignments)
+      .select("*");
+
+    if (assignError) throw new Error(`Failed to assign event visibility: ${assignError.message}`);
+    return { ...event, event_assignments: (inserted ?? []) } as EventWithAssignments;
   }
 
-  return data as EventWithAssignments;
+  return { ...event, event_assignments: [] } as EventWithAssignments;
 }
 
 export async function updateEvent(

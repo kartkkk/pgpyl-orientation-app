@@ -10,17 +10,20 @@ import type { AttendanceSessionWithEvent } from "../types";
  * database default / RLS policy, but we also set it explicitly for clarity.
  */
 export async function openSession(eventId: string, userId: string): Promise<AttendanceSessionWithEvent> {
-  void userId;
-  const response = await fetch("/api/attendance/session/open", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ event_id: eventId }),
-  });
+  const { data, error } = await supabase
+    .from("attendance_sessions")
+    .insert({
+      event_id: eventId,
+      opened_by: userId,
+      is_open: true,
+    })
+    .select("*")
+    .single();
 
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to start attendance");
-  }
+  if (error) throw error;
+
+  // Fire-and-forget — audit is non-critical
+  void writeAttendanceAudit(data.id, eventId, "session_opened", userId);
 
   return data as AttendanceSessionWithEvent;
 }
@@ -29,17 +32,20 @@ export async function openSession(eventId: string, userId: string): Promise<Atte
  * Closes an active attendance session.
  */
 export async function closeSession(sessionId: string, userId: string): Promise<AttendanceSession> {
-  void userId;
-  const response = await fetch("/api/attendance/session/close", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: sessionId }),
-  });
+  const { data, error } = await supabase
+    .from("attendance_sessions")
+    .update({
+      is_open: false,
+      closed_at: new Date().toISOString(),
+    })
+    .eq("id", sessionId)
+    .select("*")
+    .single();
 
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to close attendance");
-  }
+  if (error) throw error;
+
+  // Fire-and-forget — audit is non-critical
+  void writeAttendanceAudit(data.id, data.event_id, "session_closed", userId);
 
   return data as AttendanceSession;
 }
@@ -51,13 +57,16 @@ export async function closeSession(sessionId: string, userId: string): Promise<A
 export async function fetchSessionForEvent(
   eventId: string,
 ): Promise<AttendanceSessionWithEvent | null> {
-  const response = await fetch(`/api/attendance/session?event_id=${encodeURIComponent(eventId)}`);
-  const data = await response.json().catch(() => null);
+  const { data, error } = await supabase
+    .from("attendance_sessions")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("is_open", true)
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to load attendance session");
-  }
-
+  if (error) throw error;
   return data as AttendanceSessionWithEvent | null;
 }
 

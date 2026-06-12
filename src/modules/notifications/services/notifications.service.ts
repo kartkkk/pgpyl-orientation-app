@@ -11,7 +11,7 @@ export async function fetchNotifications(
 ): Promise<Notification[]> {
   let query = supabase
     .from("notifications")
-    .select("*")
+    .select("*, creator:profiles!notifications_created_by_fkey(full_name)")
     .order("created_at", { ascending: false });
 
   if (filters?.search) {
@@ -48,7 +48,7 @@ export async function fetchMyNotifications(
   // RLS handles visibility filtering; only show sent notifications
   const { data, error } = await supabase
     .from("notifications")
-    .select("*")
+    .select("*, creator:profiles!notifications_created_by_fkey(full_name)")
     .eq("status", "sent")
     .order("sent_at", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
@@ -61,19 +61,48 @@ export async function createNotification(
   form: NotificationFormData,
   userId: string,
 ): Promise<Notification> {
-  void userId;
-  const response = await fetch("/api/alerts/create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
-  });
+  const scheduledAt = form.scheduled_at || new Date().toISOString();
 
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(data?.error || "Failed to create alert");
+  // 1. Insert notification
+  const { data: notif, error } = await supabase
+    .from("notifications")
+    .insert({
+      title: form.title.trim(),
+      body: form.body.trim(),
+      deep_link: form.deep_link?.trim() || null,
+      visibility: form.visibility,
+      status: "scheduled",
+      event_id: form.event_id || null,
+      scheduled_at: scheduledAt,
+      created_by: userId,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // 2. Insert assignments if needed
+  if (form.visibility === "section" && form.section_ids.length > 0) {
+    const assignments = form.section_ids.map((sId) => ({
+      notification_id: notif.id,
+      section_id: sId,
+    }));
+    const { error: aErr } = await supabase
+      .from("notification_assignments")
+      .insert(assignments);
+    if (aErr) throw aErr;
+  } else if (form.visibility === "individual" && form.profile_ids.length > 0) {
+    const assignments = form.profile_ids.map((pId) => ({
+      notification_id: notif.id,
+      profile_id: pId,
+    }));
+    const { error: aErr } = await supabase
+      .from("notification_assignments")
+      .insert(assignments);
+    if (aErr) throw aErr;
   }
 
-  return data as Notification;
+  return notif as Notification;
 }
 
 export async function updateNotification(
@@ -160,6 +189,24 @@ export async function cancelNotification(id: string): Promise<Notification> {
 
   if (error) throw error;
   return data as Notification;
+}
+
+/**
+ * Triggers immediate delivery of a notification via the server-side direct-send
+ * API route. The notification must already exist in the DB with status "scheduled".
+ */
+export async function sendNotificationNow(notificationId: string): Promise<void> {
+  const response = await fetch("/api/notifications/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notification_id: notificationId }),
+    signal: AbortSignal.timeout(15_000), // 15s safety net — server continues via after()
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Send failed (${response.status})`);
+  }
 }
 
 /**
