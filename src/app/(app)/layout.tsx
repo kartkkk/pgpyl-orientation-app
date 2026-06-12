@@ -8,11 +8,8 @@ import { contactsQueryOptions } from "@/modules/contacts/hooks/useContacts";
 import { prefetchStudents } from "@/modules/students/hooks/useStudents";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { MobileMenu } from "@/components/layout/mobile-menu";
-import { NotificationGate } from "@/components/notification-gate";
-import { useFCMSetup } from "@/hooks/use-fcm-setup";
 import { ToastProvider } from "@/components/ui/toast";
 import { NetworkStatusBanner } from "@/components/network-status-banner";
-import { UpdatePrompt } from "@/components/update-prompt";
 
 const PREFETCH_KICKOFF_DELAY_MS = 1200;
 const PREFETCH_IDLE_TIMEOUT_MS = 5000;
@@ -41,8 +38,6 @@ function AppContent({
     isAuthenticated: boolean;
     isLoading: boolean;
 }) {
-    // Only runs when NotificationGate has confirmed permission === "granted"
-    useFCMSetup();
     const queryClient = useQueryClient();
 
     // Request persistent storage to prevent iOS 7-day cache eviction
@@ -137,7 +132,6 @@ function AppContent({
             <main className="flex-1">{children}</main>
             <BottomNav onMenuPress={onMenuPress} />
             <MobileMenu isOpen={menuOpen} onClose={onMenuClose} />
-            <UpdatePrompt />
         </div>
     );
 }
@@ -154,26 +148,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <ToastProvider>
-            <NotificationGate>
-                <AppContent
-                    onMenuPress={() => setMenuOpen(true)}
-                    menuOpen={menuOpen}
-                    onMenuClose={handleMenuClose}
-                    isAuthenticated={isAuthenticated}
-                    isLoading={isLoading}
-                >
-                    {isLoading ? (
-                        <div className="flex min-h-[60dvh] items-center justify-center">
-                            <span
-                                className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary-500 border-t-transparent"
-                                aria-label="Loading"
-                            />
-                        </div>
-                    ) : (
-                        children
-                    )}
-                </AppContent>
-            </NotificationGate>
+            <AppContent
+                onMenuPress={() => setMenuOpen(true)}
+                menuOpen={menuOpen}
+                onMenuClose={handleMenuClose}
+                isAuthenticated={isAuthenticated}
+                isLoading={isLoading}
+            >
+                {isLoading ? (
+                    <div className="flex min-h-[60dvh] items-center justify-center">
+                        <span
+                            className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary-500 border-t-transparent"
+                            aria-label="Loading"
+                        />
+                    </div>
+                ) : (
+                    children
+                )}
+            </AppContent>
         </ToastProvider>
     );
 }

@@ -42,8 +42,8 @@
             ]
         },
         {
-            "name": "Scan Attendance",
-            "short_name": "Scan",
+            "name": "Attendance Code",
+            "short_name": "Attendance",
             "url": "/scan",
             "icons": [
                 {
