@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { ServiceWorkerReset } from "@/components/service-worker-reset";
 import { Providers } from "./providers";
 // import { PWAGate } from "@/components/pwa-gate";
 import "./globals.css";
@@ -41,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta name="mobile-web-app-capable" content="yes" />
             </head>
             <body className="min-h-dvh bg-background text-foreground antialiased" style={{ background: '#003366' }}>
-                <ServiceWorkerReset />
                 <Providers>
                     {/* <PWAGate>{children}</PWAGate> */}
                     {children}

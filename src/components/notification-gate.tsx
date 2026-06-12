@@ -30,6 +30,7 @@ function detectPlatform(): Platform {
  * ever been prompted so we can distinguish "never prompted" from "actually denied".
  */
 const PROMPTED_KEY = "notification_prompted";
+const DISMISSED_KEY = "notification_prompt_dismissed";
 
 function hasBeenPrompted(): boolean {
     try {
@@ -104,6 +105,13 @@ function getServerPermission() {
 }
 
 export function NotificationGate({ children }: { children: React.ReactNode }) {
+    const [dismissed, setDismissed] = useState(() => {
+        try {
+            return localStorage.getItem(DISMISSED_KEY) === "1";
+        } catch {
+            return false;
+        }
+    });
     // Keep permission/platform derivation in sync without local state churn.
     const permission = useSyncExternalStore(subscribePermission, getPermission, getServerPermission);
     const platform = useSyncExternalStore(
@@ -120,12 +128,20 @@ export function NotificationGate({ children }: { children: React.ReactNode }) {
     return (
         <>
             {children}
-            {permission !== "granted" && (
+            {permission !== "granted" && !dismissed && (
                 <div className="fixed inset-0 z-[100] bg-white">
                     <NotificationPromptScreen
                         permission={permission}
                         platform={platform}
                         onPermissionChange={notifyPermissionChange}
+                        onDismiss={() => {
+                            try {
+                                localStorage.setItem(DISMISSED_KEY, "1");
+                            } catch {
+                                // ignore
+                            }
+                            setDismissed(true);
+                        }}
                     />
                 </div>
             )}
@@ -139,9 +155,10 @@ interface PromptScreenProps {
     permission: NotificationPermission;
     platform: Platform;
     onPermissionChange: () => void;
+    onDismiss: () => void;
 }
 
-function NotificationPromptScreen({ permission, platform, onPermissionChange }: PromptScreenProps) {
+function NotificationPromptScreen({ permission, platform, onPermissionChange, onDismiss }: PromptScreenProps) {
     const [requesting, setRequesting] = useState(false);
     const [showManualSteps, setShowManualSteps] = useState(false);
     const [lastAttemptDenied, setLastAttemptDenied] = useState(false);
@@ -190,7 +207,7 @@ function NotificationPromptScreen({ permission, platform, onPermissionChange }: 
                 <div className="space-y-2">
                     <AppLogo size={64} priority className="mx-auto" />
                     <h1 className="text-2xl font-bold text-foreground">{APP_NAME}</h1>
-                    <p className="text-sm text-muted">Enable notifications to continue</p>
+                    <p className="text-sm text-muted">Enable notifications for reminders</p>
                 </div>
 
                 {/* Card */}
@@ -206,8 +223,7 @@ function NotificationPromptScreen({ permission, platform, onPermissionChange }: 
                         </div>
 
                         <p className="text-sm text-muted">
-                            Stay updated with event alerts, group invites, and important announcements. Notifications
-                            are required to use {APP_NAME}.
+                            Stay updated with event alerts, group invites, and important announcements.
                         </p>
 
                         <div className="space-y-2">
@@ -238,6 +254,10 @@ function NotificationPromptScreen({ permission, platform, onPermissionChange }: 
 
                         <Button onClick={handleRequestPermission} loading={requesting}>
                             {requesting ? "Requesting..." : "Enable Notifications"}
+                        </Button>
+
+                        <Button variant="outline" onClick={onDismiss}>
+                            Continue for now
                         </Button>
 
                         <Button
