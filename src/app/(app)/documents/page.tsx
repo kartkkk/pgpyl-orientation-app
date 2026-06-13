@@ -42,7 +42,7 @@ interface HubCard {
 const HUB_CARDS: HubCard[] = [
   {
     href: "/documents/kt",
-    label: "KT Guide",
+    label: "Resource Guide",
     description: "Campus life, operations, contacts and practical tips",
     icon: BookOpen,
     gradient: "from-primary-50 to-blue-50",
@@ -132,7 +132,7 @@ function KTSearchResultsList({ query }: { query: string }) {
   return (
     <div className="space-y-3">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-        KT Guide
+        Resource Guide
       </p>
       {results.map((r) => (
         <Link

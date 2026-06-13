@@ -68,12 +68,12 @@ export default function KTGuidePage() {
 
   return (
     <>
-      <PageHeader title="KT Guide" showBack />
+      <PageHeader title="Resource Guide" showBack />
 
       <div className="space-y-3 p-4">
         {/* Search */}
         <SearchInput
-          placeholder="Search the KT guide..."
+          placeholder="Search the resource guide..."
           value={search}
           onChange={setSearch}
           isSearching={isSearching}
