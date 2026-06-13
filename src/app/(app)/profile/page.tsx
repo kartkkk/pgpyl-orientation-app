@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { PushRegistrationCard } from "@/components/push-registration-card";
 import { useAuth } from "@/modules/auth/auth-context";
 import { useUpdateMyProfile } from "@/modules/profile/hooks/useProfile";
 import { haptics } from "@/lib/haptics";
@@ -95,6 +96,8 @@ export default function ProfilePage() {
             <p className="text-xs text-muted">Roll: {profile.roll_number}</p>
           )}
         </Card>
+
+        <PushRegistrationCard />
 
         {/* Editable fields */}
         <Card className="space-y-4">

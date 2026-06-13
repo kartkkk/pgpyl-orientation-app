@@ -25,7 +25,7 @@ const MENU_ITEMS: MenuItem[] = [
   { href: "/scan", label: "Attendance Code", icon: ScanLine },
   { href: "/students", label: "Students & Staff", icon: UsersRound },
   { href: "/contacts", label: "Emergency Contacts", icon: Phone },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/profile", label: "Profile & Push", icon: User },
 ];
 
 interface MobileMenuProps {
