@@ -7,7 +7,7 @@ import { useAuth } from "@/modules/auth/auth-context";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
-/** Minimum interval between syncToken calls (5 minutes). */
+/** Minimum interval between syncToken calls once a device token already exists. */
 const SYNC_THROTTLE_MS = 5 * 60 * 1000;
 
 /**
@@ -23,20 +23,28 @@ export function useFCMSetup() {
     const busyRef = useRef(false);
     const profileRef = useRef(profile);
     const lastSyncRef = useRef(0);
+    const retryTimersRef = useRef<number[]>([]);
 
     // Keep latest profile accessible inside async callbacks.
     useEffect(() => { profileRef.current = profile; }, [profile]);
 
-    const syncToken = useCallback(async () => {
+    const syncToken = useCallback(async (force = false) => {
         if (!profile || busyRef.current) return;
+        if (!VAPID_KEY) {
+            console.warn("[FCM] Missing NEXT_PUBLIC_FIREBASE_VAPID_KEY");
+            return;
+        }
 
         // Check permission FIRST — don't burn the throttle on a guaranteed no-op.
         // NotificationGate handles prompting; we only act once granted.
         if (typeof Notification !== "undefined" && Notification.permission !== "granted") return;
+        if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
-        // Throttle: skip if we synced less than 5 minutes ago
+        // Throttle only after this profile already has a token. First-time
+        // registration must be eager, because alerts cannot send until it lands.
         const now = Date.now();
-        if (now - lastSyncRef.current < SYNC_THROTTLE_MS) return;
+        const alreadyRegistered = !!profileRef.current?.fcm_token;
+        if (!force && alreadyRegistered && now - lastSyncRef.current < SYNC_THROTTLE_MS) return;
 
         busyRef.current = true;
 
@@ -53,8 +61,13 @@ export function useFCMSetup() {
                 serviceWorkerRegistration: registration,
             });
 
+            if (!token) {
+                console.warn("[FCM] Browser did not return a device token yet");
+                return;
+            }
+
             // 2) Persist only on token changes to reduce unnecessary DB writes.
-            if (token && profileRef.current) {
+            if (profileRef.current) {
                 const didWrite = await saveFCMTokenIfChanged(token, profileRef.current.fcm_token ?? null, profileRef.current.id);
                 if (didWrite) {
                     // Fire-and-forget — don't block on profile refresh
@@ -74,11 +87,24 @@ export function useFCMSetup() {
         }
     }, [profile, refreshProfile]);
 
+    const clearRetries = useCallback(() => {
+        retryTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+        retryTimersRef.current = [];
+    }, []);
+
+    const syncTokenWithRetries = useCallback(() => {
+        clearRetries();
+        syncToken(true);
+        retryTimersRef.current = [1_500, 5_000, 12_000].map((delay) =>
+            window.setTimeout(() => syncToken(true), delay),
+        );
+    }, [clearRetries, syncToken]);
+
     // ── Mount: sync token + set up foreground listener ──────────────────────
     useEffect(() => {
         if (!profile) return;
 
-        syncToken();
+        syncTokenWithRetries();
 
         let unsubscribe: (() => void) | undefined;
         let cancelled = false;
@@ -107,8 +133,9 @@ export function useFCMSetup() {
         return () => {
             cancelled = true;
             unsubscribe?.();
+            clearRetries();
         };
-    }, [profile, syncToken]);
+    }, [clearRetries, profile, syncTokenWithRetries]);
 
     // ── Permission change: sync token immediately when permission is granted ─
     // NotificationGate dispatches "notification-permission-change" on the window
@@ -119,7 +146,7 @@ export function useFCMSetup() {
         if (typeof Notification === "undefined") return;
 
         const handler = () => {
-            if (Notification.permission === "granted") syncToken();
+            if (Notification.permission === "granted") syncTokenWithRetries();
         };
 
         window.addEventListener("notification-permission-change", handler);
@@ -138,7 +165,7 @@ export function useFCMSetup() {
             window.removeEventListener("notification-permission-change", handler);
             permCleanup?.();
         };
-    }, [profile, syncToken]);
+    }, [profile, syncTokenWithRetries]);
 
     // ── Visibility change: re-sync token when user returns (throttled) ─────
     useEffect(() => {
