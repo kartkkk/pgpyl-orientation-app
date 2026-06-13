@@ -29,6 +29,22 @@ type OneSignalLike = {
 let scriptPromise: Promise<void> | null = null;
 let initPromise: Promise<OneSignalLike> | null = null;
 
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function waitForSubscriptionId(OneSignal: OneSignalLike) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const subscription = OneSignal.User?.PushSubscription;
+    if (subscription?.id && subscription.optedIn !== false) {
+      return subscription.id;
+    }
+    await sleep(500);
+  }
+
+  throw new Error("Permission was allowed, but OneSignal has not created a device subscription yet. Close and reopen the installed app, then tap Register this device again.");
+}
+
 function loadScript() {
   if (scriptPromise) return scriptPromise;
 
@@ -105,5 +121,5 @@ export async function registerOneSignalDevice(profile: { id: string; email: stri
     await OneSignal.User.PushSubscription.optIn();
   }
 
-  return OneSignal.User?.PushSubscription?.id ?? "registered";
+  return waitForSubscriptionId(OneSignal);
 }

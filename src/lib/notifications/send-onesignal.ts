@@ -40,6 +40,7 @@ export async function sendNotificationViaOneSignal(notif: NotificationRow) {
     },
     body: JSON.stringify({
       app_id: appId,
+      target_channel: "push",
       included_segments: ["Subscribed Users"],
       headings: { en: notif.title },
       contents: { en: notif.body },
