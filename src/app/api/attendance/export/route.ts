@@ -14,7 +14,6 @@ type AllowedStudentRow = {
 type AttendanceRecordRow = {
   profile_id: string;
   scanned_at: string;
-  profile: { email: string | null; full_name: string | null } | { email: string | null; full_name: string | null }[] | null;
 };
 
 function csvCell(value: string | null | undefined): string {
@@ -24,11 +23,6 @@ function csvCell(value: string | null | undefined): string {
 
 function csvRow(values: Array<string | null | undefined>): string {
   return values.map(csvCell).join(",");
-}
-
-function profileFromRecord(record: AttendanceRecordRow): { email: string | null; full_name: string | null } | null {
-  if (Array.isArray(record.profile)) return record.profile[0] ?? null;
-  return record.profile;
 }
 
 export async function GET(request: Request) {
@@ -91,11 +85,12 @@ export async function GET(request: Request) {
 
     const sessionId = sessions?.[0]?.id;
     let records: AttendanceRecordRow[] = [];
+    const profileById = new Map<string, { email: string | null; full_name: string | null }>();
 
     if (sessionId) {
       const { data, error } = await supabase
         .from("attendance_records")
-        .select("profile_id, scanned_at, profile:profiles(email, full_name)")
+        .select("profile_id, scanned_at")
         .eq("session_id", sessionId);
 
       if (error) {
@@ -103,11 +98,30 @@ export async function GET(request: Request) {
       }
 
       records = (data ?? []) as AttendanceRecordRow[];
+
+      const profileIds = [...new Set(records.map((record) => record.profile_id).filter(Boolean))];
+      if (profileIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, email, full_name")
+          .in("id", profileIds);
+
+        if (profilesError) {
+          return NextResponse.json({ error: "Unable to load attendance profiles" }, { status: 500 });
+        }
+
+        for (const profile of profiles ?? []) {
+          profileById.set(profile.id, {
+            email: profile.email,
+            full_name: profile.full_name,
+          });
+        }
+      }
     }
 
     const attendanceByEmail = new Map<string, string>();
     for (const record of records) {
-      const profile = profileFromRecord(record);
+      const profile = profileById.get(record.profile_id);
       const email = profile?.email?.toLowerCase();
       if (email && !attendanceByEmail.has(email)) {
         attendanceByEmail.set(email, record.scanned_at);
