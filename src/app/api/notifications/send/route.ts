@@ -1,4 +1,4 @@
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import {
     getServiceSupabase,
@@ -48,8 +48,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "notification_id is required" }, { status: 400 });
         }
 
-        // 3. Initialise the Supabase service client. Firebase is optional:
-        // when it is not configured, we still publish the alert in-app.
+        // 3. Initialise server-side singletons.
+        ensureFirebaseAdmin();
         const supabase = getServiceSupabase();
 
         // 4. Verify admin role + fetch notification in parallel (independent queries)
@@ -85,74 +85,53 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Failed to lock notification" }, { status: 500 });
         }
 
-        // 7. Resolve recipients, send via FCM, and update status — all deferred
-        //    so the client gets an instant response. The cron job rescues any
-        //    notifications stuck in "sending" for >2 min as a safety net.
-        after(async () => {
-            try {
-                const tResolve = Date.now();
-                const recipients = await resolveRecipients(supabase, notif);
-                console.info(
-                    `${LOG_PREFIX} Recipients resolved: notif=${notif.id} count=${recipients.length} took=${Date.now() - tResolve}ms`,
-                );
+        const tResolve = Date.now();
+        const recipients = await resolveRecipients(supabase, notif);
+        console.info(
+            `${LOG_PREFIX} Recipients resolved: notif=${notif.id} count=${recipients.length} took=${Date.now() - tResolve}ms`,
+        );
 
-                if (recipients.length === 0) {
-                    await supabase
-                        .from("notifications")
-                        .update({ status: "sent", sent_at: new Date().toISOString() })
-                        .eq("id", notif.id);
-                    console.warn(`${LOG_PREFIX} No FCM tokens; published in-app only: notif=${notif.id}`);
-                    return;
-                }
+        if (recipients.length === 0) {
+            await supabase
+                .from("notifications")
+                .update({ status: "failed", sent_at: new Date().toISOString() })
+                .eq("id", notif.id);
+            return NextResponse.json(
+                { error: "No devices have enabled notifications yet. Ask students to open the app and tap Allow Notifications." },
+                { status: 422 },
+            );
+        }
 
-                try {
-                    ensureFirebaseAdmin();
-                } catch (firebaseErr) {
-                    await supabase
-                        .from("notifications")
-                        .update({ status: "sent", sent_at: new Date().toISOString() })
-                        .eq("id", notif.id);
-                    console.warn(
-                        `${LOG_PREFIX} Firebase unavailable; published in-app only: notif=${notif.id}`,
-                        firebaseErr,
-                    );
-                    return;
-                }
+        const tSend = Date.now();
+        const result = await sendNotificationViaFCM(supabase, notif, recipients);
+        const sendMs = Date.now() - tSend;
+        const finalStatus = result.sent_count > 0 ? "sent" : "failed";
 
-                const tSend = Date.now();
-                const result = await sendNotificationViaFCM(supabase, notif, recipients);
-                const sendMs = Date.now() - tSend;
-                const finalStatus = result.sent_count > 0 ? "sent" : "failed";
+        const { error: updateErr } = await supabase
+            .from("notifications")
+            .update({ status: finalStatus, sent_at: new Date().toISOString() })
+            .eq("id", notif.id);
 
-                const { error: updateErr } = await supabase
-                    .from("notifications")
-                    .update({ status: finalStatus, sent_at: new Date().toISOString() })
-                    .eq("id", notif.id);
+        if (updateErr) {
+            console.error(
+                `${LOG_PREFIX} Status update failed: notif=${notif.id} status=${finalStatus} err=${updateErr.message}`,
+            );
+        }
 
-                if (updateErr) {
-                    console.error(
-                        `${LOG_PREFIX} Status update failed: notif=${notif.id} status=${finalStatus} err=${updateErr.message}`,
-                    );
-                }
+        console.info(
+            `${LOG_PREFIX} Complete: notif=${notif.id} status=${finalStatus} ` +
+                `sent=${result.sent_count} failed=${result.failed_count} ` +
+                `fcm=${sendMs}ms total=${Date.now() - t0}ms`,
+        );
 
-                console.info(
-                    `${LOG_PREFIX} Complete: notif=${notif.id} status=${finalStatus} ` +
-                        `sent=${result.sent_count} failed=${result.failed_count} ` +
-                        `fcm=${sendMs}ms total=${Date.now() - t0}ms`,
-                );
-            } catch (afterErr) {
-                console.error(`${LOG_PREFIX} after() failed: notif=${notif.id}`, afterErr);
-                await supabase
-                    .from("notifications")
-                    .update({ status: "failed", sent_at: new Date().toISOString() })
-                    .eq("id", notif.id)
-                    .then(({ error }) => {
-                        if (error) console.error(`${LOG_PREFIX} Fallback status update also failed:`, error.message);
-                    });
-            }
-        });
+        if (result.sent_count === 0) {
+            return NextResponse.json(
+                { error: "Firebase did not accept any device tokens. Ask users to reopen the app and allow notifications." },
+                { status: 502 },
+            );
+        }
 
-        return NextResponse.json({ status: "sending" });
+        return NextResponse.json({ status: "sent", sent_count: result.sent_count, failed_count: result.failed_count });
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`${LOG_PREFIX} Unhandled error (${Date.now() - t0}ms):`, err);
