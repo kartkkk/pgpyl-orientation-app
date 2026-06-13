@@ -1,13 +1,6 @@
 import type { FirebaseApp } from "firebase/app";
 import type { Messaging } from "firebase/messaging";
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+import { FIREBASE_PUBLIC_CONFIG } from "@/lib/firebase-config";
 
 let appInstance: FirebaseApp | null = null;
 let messagingInstance: Messaging | null = null;
@@ -16,7 +9,7 @@ let messagingInstance: Messaging | null = null;
 async function getApp(): Promise<FirebaseApp> {
   if (appInstance) return appInstance;
   const { initializeApp, getApps, getApp: getExistingApp } = await import("firebase/app");
-  appInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getExistingApp();
+  appInstance = getApps().length === 0 ? initializeApp(FIREBASE_PUBLIC_CONFIG) : getExistingApp();
   return appInstance;
 }
 

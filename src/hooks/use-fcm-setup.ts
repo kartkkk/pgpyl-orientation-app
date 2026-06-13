@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { FIREBASE_VAPID_KEY } from "@/lib/firebase-config";
 import { getFirebaseMessaging, onMessage } from "@/lib/firebase";
 import { saveFCMTokenIfChanged } from "@/modules/notifications/services/notifications.service";
 import { useAuth } from "@/modules/auth/auth-context";
-
-const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 /** Minimum interval between syncToken calls once a device token already exists. */
 const SYNC_THROTTLE_MS = 5 * 60 * 1000;
@@ -30,10 +29,6 @@ export function useFCMSetup() {
 
     const syncToken = useCallback(async (force = false) => {
         if (!profile || busyRef.current) return;
-        if (!VAPID_KEY) {
-            console.warn("[FCM] Missing NEXT_PUBLIC_FIREBASE_VAPID_KEY");
-            return;
-        }
 
         // Check permission FIRST — don't burn the throttle on a guaranteed no-op.
         // NotificationGate handles prompting; we only act once granted.
@@ -57,7 +52,7 @@ export function useFCMSetup() {
 
             const { getToken: getTokenFn } = await import("firebase/messaging");
             const token = await getTokenFn(messaging, {
-                vapidKey: VAPID_KEY,
+                vapidKey: FIREBASE_VAPID_KEY,
                 serviceWorkerRegistration: registration,
             });
 

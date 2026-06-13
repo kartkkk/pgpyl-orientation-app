@@ -5,10 +5,9 @@ import { BellRing, CheckCircle2, Smartphone } from "lucide-react";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FIREBASE_VAPID_KEY } from "@/lib/firebase-config";
 import { getFirebaseMessaging } from "@/lib/firebase";
 import { useAuth } from "@/modules/auth/auth-context";
-
-const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 export function PushRegistrationCard() {
   const { profile, refreshProfile } = useAuth();
@@ -22,10 +21,6 @@ export function PushRegistrationCard() {
     setStatus("Checking this device...");
 
     try {
-      if (!VAPID_KEY) {
-        throw new Error("Firebase VAPID key is missing in Vercel.");
-      }
-
       if (typeof window === "undefined" || typeof Notification === "undefined") {
         throw new Error("This browser does not support push notifications.");
       }
@@ -54,7 +49,7 @@ export function PushRegistrationCard() {
       setStatus("Registering this device...");
       const { getToken } = await import("firebase/messaging");
       const token = await getToken(messaging, {
-        vapidKey: VAPID_KEY,
+        vapidKey: FIREBASE_VAPID_KEY,
         serviceWorkerRegistration: registration,
       });
 
