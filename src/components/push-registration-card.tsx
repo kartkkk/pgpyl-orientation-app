@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FIREBASE_VAPID_KEY } from "@/lib/firebase-config";
 import { getFirebaseMessaging } from "@/lib/firebase";
+import { registerOneSignalDevice } from "@/lib/onesignal-client";
 import { useAuth } from "@/modules/auth/auth-context";
+
+const HAS_ONESIGNAL = !!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 
 export function PushRegistrationCard() {
   const { profile, refreshProfile } = useAuth();
@@ -21,6 +24,17 @@ export function PushRegistrationCard() {
     setStatus("Checking this device...");
 
     try {
+      if (HAS_ONESIGNAL && profile) {
+        setStatus("Registering this device...");
+        await registerOneSignalDevice({
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+        });
+        setStatus("Push notifications are ready on this device.");
+        return;
+      }
+
       if (typeof window === "undefined" || typeof Notification === "undefined") {
         throw new Error("This browser does not support push notifications.");
       }

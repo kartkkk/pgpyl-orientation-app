@@ -5,6 +5,7 @@ import {
     resolveRecipients,
     sendNotificationViaFCM,
 } from "@/lib/notifications/send-fcm";
+import { isOneSignalConfigured, sendNotificationViaOneSignal } from "@/lib/notifications/send-onesignal";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30; // Vercel function timeout (seconds)
@@ -36,7 +37,6 @@ export async function GET(request: Request) {
     }
 
     try {
-        ensureFirebaseAdmin();
         const supabase = getServiceSupabase();
         const now = new Date().toISOString();
         const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
@@ -131,6 +131,25 @@ export async function GET(request: Request) {
         const settled = await Promise.all(
             locked.map(async ({ notif }) => {
                 const tNotif = Date.now();
+
+                if (isOneSignalConfigured() && notif.visibility === "all") {
+                    const result = await sendNotificationViaOneSignal(notif);
+                    const finalStatus = result.sent_count > 0 ? "sent" : "failed";
+
+                    await supabase
+                        .from("notifications")
+                        .update({ status: finalStatus, sent_at: new Date().toISOString() })
+                        .eq("id", notif.id);
+
+                    console.info(
+                        `${LOG_PREFIX} Sent via OneSignal: notif=${notif.id} status=${finalStatus} ` +
+                            `sent=${result.sent_count} took=${Date.now() - tNotif}ms`,
+                    );
+
+                    return { id: notif.id, status: finalStatus, sent: result.sent_count, failed: 0 };
+                }
+
+                ensureFirebaseAdmin();
                 const recipients = await resolveRecipients(supabase, notif);
 
                 if (recipients.length === 0) {

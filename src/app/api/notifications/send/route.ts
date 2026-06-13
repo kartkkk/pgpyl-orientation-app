@@ -6,6 +6,7 @@ import {
     resolveRecipients,
     sendNotificationViaFCM,
 } from "@/lib/notifications/send-fcm";
+import { isOneSignalConfigured, sendNotificationViaOneSignal } from "@/lib/notifications/send-onesignal";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30; // Vercel function timeout (seconds)
@@ -48,8 +49,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "notification_id is required" }, { status: 400 });
         }
 
-        // 3. Initialise server-side singletons.
-        ensureFirebaseAdmin();
+        // 3. Initialise server-side database singleton.
         const supabase = getServiceSupabase();
 
         // 4. Verify admin role + fetch notification in parallel (independent queries)
@@ -84,6 +84,33 @@ export async function POST(request: Request) {
             console.error(`${LOG_PREFIX} Failed to lock: notif=${notif.id} err=${lockErr.message}`);
             return NextResponse.json({ error: "Failed to lock notification" }, { status: 500 });
         }
+
+        if (isOneSignalConfigured() && notif.visibility === "all") {
+            const tSend = Date.now();
+            const result = await sendNotificationViaOneSignal(notif);
+            const finalStatus = result.sent_count > 0 ? "sent" : "failed";
+
+            await supabase
+                .from("notifications")
+                .update({ status: finalStatus, sent_at: new Date().toISOString() })
+                .eq("id", notif.id);
+
+            console.info(
+                `${LOG_PREFIX} Complete via OneSignal: notif=${notif.id} status=${finalStatus} ` +
+                    `sent=${result.sent_count} onesignal=${Date.now() - tSend}ms total=${Date.now() - t0}ms`,
+            );
+
+            if (result.sent_count === 0) {
+                return NextResponse.json(
+                    { error: "OneSignal is connected, but no devices are subscribed yet. Ask users to open Profile & Push once." },
+                    { status: 422 },
+                );
+            }
+
+            return NextResponse.json({ status: "sent", sent_count: result.sent_count, failed_count: 0 });
+        }
+
+        ensureFirebaseAdmin();
 
         const tResolve = Date.now();
         const recipients = await resolveRecipients(supabase, notif);
