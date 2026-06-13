@@ -125,8 +125,11 @@ export function useExportAttendance() {
       const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "attendance.csv";
       link.href = url;
       link.download = filename;
+      link.style.display = "none";
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       return { ok: true };
     },
