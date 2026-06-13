@@ -68,7 +68,7 @@ export function useFCMSetup() {
 
             // 2) Persist only on token changes to reduce unnecessary DB writes.
             if (profileRef.current) {
-                const didWrite = await saveFCMTokenIfChanged(token, profileRef.current.fcm_token ?? null, profileRef.current.id);
+                const didWrite = await saveFCMTokenIfChanged(token, profileRef.current.fcm_token ?? null);
                 if (didWrite) {
                     // Fire-and-forget — don't block on profile refresh
                     refreshProfile().catch(() => {});

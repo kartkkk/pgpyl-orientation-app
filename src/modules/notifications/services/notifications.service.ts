@@ -216,15 +216,19 @@ export async function sendNotificationNow(notificationId: string): Promise<void>
 export async function saveFCMTokenIfChanged(
   newToken: string,
   currentToken: string | null,
-  userId: string,
 ): Promise<boolean> {
   if (newToken === currentToken) return false;
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ fcm_token: newToken })
-    .eq("id", userId);
+  const response = await fetch("/api/notifications/register-device", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: newToken }),
+  });
 
-  if (error) throw error;
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "Could not save this device for notifications.");
+  }
+
   return true;
 }
