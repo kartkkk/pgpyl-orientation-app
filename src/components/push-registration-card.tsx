@@ -26,11 +26,24 @@ export function PushRegistrationCard() {
     try {
       if (HAS_ONESIGNAL && profile) {
         setStatus("Registering this device...");
-        await registerOneSignalDevice({
+        const subscriptionId = await registerOneSignalDevice({
           id: profile.id,
           email: profile.email,
           full_name: profile.full_name,
         });
+
+        const response = await fetch("/api/notifications/register-device", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: `onesignal:${subscriptionId}` }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Could not save this device.");
+        }
+
+        await refreshProfile();
         setStatus("Push notifications are ready on this device.");
         return;
       }

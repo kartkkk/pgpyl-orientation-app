@@ -85,9 +85,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Failed to lock notification" }, { status: 500 });
         }
 
-        if (isOneSignalConfigured() && notif.visibility === "all") {
+        if (isOneSignalConfigured()) {
+            const recipients = await resolveRecipients(supabase, notif);
+            const oneSignalSubscriptionIds = recipients
+                .map((recipient) => recipient.fcm_token)
+                .filter((token) => token.startsWith("onesignal:"))
+                .map((token) => token.replace("onesignal:", ""));
+
             const tSend = Date.now();
-            const result = await sendNotificationViaOneSignal(notif);
+            const result = await sendNotificationViaOneSignal(notif, oneSignalSubscriptionIds);
             const finalStatus = result.sent_count > 0 ? "sent" : "failed";
 
             await supabase
@@ -102,7 +108,7 @@ export async function POST(request: Request) {
 
             if (result.sent_count === 0) {
                 return NextResponse.json(
-                    { error: "OneSignal is connected, but no devices are subscribed yet. Ask users to open Profile & Push once." },
+                    { error: "No phones are saved for push yet. Open Profile & Push on one phone and tap Register this device." },
                     { status: 422 },
                 );
             }

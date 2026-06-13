@@ -20,7 +20,7 @@ function resolveUrl(deepLink: string | null) {
   return `${baseUrl}/alerts`;
 }
 
-export async function sendNotificationViaOneSignal(notif: NotificationRow) {
+export async function sendNotificationViaOneSignal(notif: NotificationRow, subscriptionIds: string[]) {
   const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
 
@@ -28,8 +28,12 @@ export async function sendNotificationViaOneSignal(notif: NotificationRow) {
     throw new Error("OneSignal is not configured.");
   }
 
-  if (notif.visibility !== "all") {
-    throw new Error("OneSignal simple mode only supports alerts to everyone.");
+  if (subscriptionIds.length === 0) {
+    return {
+      notification_id: notif.id,
+      sent_count: 0,
+      failed_count: 0,
+    };
   }
 
   const response = await fetch(ONESIGNAL_API_URL, {
@@ -41,7 +45,7 @@ export async function sendNotificationViaOneSignal(notif: NotificationRow) {
     body: JSON.stringify({
       app_id: appId,
       target_channel: "push",
-      included_segments: ["Subscribed Users"],
+      include_subscription_ids: subscriptionIds,
       headings: { en: notif.title },
       contents: { en: notif.body },
       url: resolveUrl(notif.deep_link),

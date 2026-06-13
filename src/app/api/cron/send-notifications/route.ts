@@ -132,8 +132,14 @@ export async function GET(request: Request) {
             locked.map(async ({ notif }) => {
                 const tNotif = Date.now();
 
-                if (isOneSignalConfigured() && notif.visibility === "all") {
-                    const result = await sendNotificationViaOneSignal(notif);
+                if (isOneSignalConfigured()) {
+                    const recipients = await resolveRecipients(supabase, notif);
+                    const oneSignalSubscriptionIds = recipients
+                        .map((recipient) => recipient.fcm_token)
+                        .filter((token) => token.startsWith("onesignal:"))
+                        .map((token) => token.replace("onesignal:", ""));
+
+                    const result = await sendNotificationViaOneSignal(notif, oneSignalSubscriptionIds);
                     const finalStatus = result.sent_count > 0 ? "sent" : "failed";
 
                     await supabase
