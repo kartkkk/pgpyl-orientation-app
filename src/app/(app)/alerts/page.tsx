@@ -1,7 +1,8 @@
 "use client";
 
 import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
-import { Bell } from "lucide-react";
+import Link from "next/link";
+import { Bell, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/layout/page-header";
 import { FloatingActionButton } from "@/components/ui/fab";
@@ -16,10 +17,12 @@ import { RefreshBar } from "@/components/ui/refresh-bar";
 import { SearchInput } from "@/components/ui/search-input";
 import { SearchStatusHint } from "@/components/ui/search-status-hint";
 import {
+  useDeleteNotification,
   useNotifications,
   useMyNotifications,
 } from "@/modules/notifications/hooks/useNotifications";
 import { useAuth } from "@/modules/auth/auth-context";
+import { haptics } from "@/lib/haptics";
 import { getLoadErrorCopy, getSearchHintCopy } from "@/lib/ux-copy";
 import type { Notification, NotificationStatus } from "@/types";
 
@@ -206,9 +209,23 @@ const AlertCard = memo(function AlertCard({
   notif: AlertNotification;
   isAdmin: boolean;
 }) {
+  const deleteNotification = useDeleteNotification();
   const author = notif.creator?.full_name ?? notif.created_by;
   const formattedDate = format(new Date(notif.created_at), "MMM d, yyyy, h:mm a");
   const accentColor = ACCENT_COLOR[notif.status] ?? "var(--color-border)";
+  const canEdit = isAdmin && (notif.status === "draft" || notif.status === "scheduled");
+
+  const handleDelete = async () => {
+    if (deleteNotification.isPending) return;
+    if (!window.confirm("Delete this alert?")) return;
+
+    try {
+      await deleteNotification.mutateAsync(notif.id);
+      haptics.success();
+    } catch {
+      haptics.error();
+    }
+  };
 
   return (
     <Card className="!p-0 overflow-hidden">
@@ -246,6 +263,29 @@ const AlertCard = memo(function AlertCard({
             <p className="text-xs text-brand-gold">
               Scheduled for {format(new Date(notif.scheduled_at), "MMM d, yyyy, h:mm a")}
             </p>
+          )}
+
+          {isAdmin && (
+            <div className="flex gap-2 pt-2">
+              {canEdit && (
+                <Link
+                  href={`/alerts/${notif.id}/edit`}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-primary-600"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteNotification.isPending}
+                className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-error disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            </div>
           )}
         </div>
       </div>

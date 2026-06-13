@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="mobile-web-app-capable" content="yes" />
             </head>
-            <body className="min-h-dvh bg-background text-foreground antialiased" style={{ background: '#003366' }}>
+            <body className="min-h-dvh bg-background text-foreground antialiased">
                 <Providers>
                     {/* <PWAGate>{children}</PWAGate> */}
                     {children}

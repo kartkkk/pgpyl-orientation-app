@@ -126,12 +126,12 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-primary-900 px-6 text-white">
       <div className="w-full max-w-sm space-y-8 text-center">
         <div className="space-y-2">
           <AppLogo size={64} priority className="mx-auto" />
-          <h1 className="text-2xl font-bold text-foreground">{APP_NAME}</h1>
-          <p className="text-sm text-muted">
+          <h1 className="text-2xl font-bold text-white">{APP_NAME}</h1>
+          <p className="text-sm text-white/70">
             Enter your ISB email to continue
           </p>
         </div>
@@ -179,7 +179,7 @@ function LoginContent() {
           onSubmit={mode === "first" ? handleFirstLogin : handleReturningLogin}
           className="space-y-3 text-left"
         >
-          <label className="block text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="email">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-white/70" htmlFor="email">
             Email
           </label>
           <input
@@ -195,7 +195,7 @@ function LoginContent() {
 
           {mode === "first" ? (
             <>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="passcode">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-white/70" htmlFor="passcode">
                 Temporary passcode
               </label>
               <input
@@ -208,7 +208,7 @@ function LoginContent() {
                 className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary-500"
               />
 
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="pin">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-white/70" htmlFor="pin">
                 Create 6-digit PIN
               </label>
               <input
@@ -223,7 +223,7 @@ function LoginContent() {
                 className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary-500"
               />
 
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="confirm-pin">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-white/70" htmlFor="confirm-pin">
                 Confirm PIN
               </label>
               <input
@@ -240,7 +240,7 @@ function LoginContent() {
             </>
           ) : (
             <>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="password">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-white/70" htmlFor="password">
                 PIN / admin password
               </label>
               <input

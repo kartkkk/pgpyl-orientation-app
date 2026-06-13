@@ -1,36 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  /* Primary brand — PGP YL indigo */
-  --color-primary-50: #EEF2FF;
-  --color-primary-100: #E0E7FF;
-  --color-primary-200: #C7D2FE;
-  --color-primary-300: #A5B4FC;
-  --color-primary-400: #818CF8;
-  --color-primary-500: #4F46E5;
-  --color-primary-600: #4338CA;
-  --color-primary-700: #3730A3;
-  --color-primary-800: #312E81;
-  --color-primary-900: #1E1B4B;
+  /* Primary brand — ISB navy */
+  --color-primary-50: #EAF2F8;
+  --color-primary-100: #D6E6F2;
+  --color-primary-200: #A7C8DE;
+  --color-primary-300: #78A9CA;
+  --color-primary-400: #3F7EA9;
+  --color-primary-500: #003366;
+  --color-primary-600: #002B55;
+  --color-primary-700: #002244;
+  --color-primary-800: #001A33;
+  --color-primary-900: #001225;
 
   /* Section Colors (A indigo / B teal) */
   --color-section-a: #4F46E5;
   --color-section-b: #0D9488;
 
-  /* Brand accent — warm gold */
-  --color-brand-gold: #F59E0B;
+  /* Brand accent — ISB gold */
+  --color-brand-gold: #C99700;
 
   /* Medal */
-  --color-medal-gold: #F59E0B;
+  --color-medal-gold: #C99700;
   --color-medal-silver: #A8B2C1;
   --color-medal-bronze: #C47B3A;
 
   /* Neutral */
-  --color-surface-alt: #F3F4F6;
+  --color-surface-alt: #F5F7FA;
 
   /* Semantic */
   --color-background: #ffffff;
-  --color-foreground: #0a0a0a;
+  --color-foreground: #111827;
   --color-muted: #6b7280;
   --color-border: #e5e7eb;
   --color-success: #10b981;

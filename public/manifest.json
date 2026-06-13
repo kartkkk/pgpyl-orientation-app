@@ -5,8 +5,8 @@
     "id": "/events",
     "start_url": "/events",
     "display": "standalone",
-    "background_color": "#4F46E5",
-    "theme_color": "#4F46E5",
+    "background_color": "#003366",
+    "theme_color": "#003366",
     "orientation": "portrait",
     "categories": [
         "education"
