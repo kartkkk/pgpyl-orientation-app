@@ -3,14 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { AppLogo } from "@/components/ui/app-logo";
-import { useAuth } from "@/modules/auth/auth-context";
 import { supabase } from "@/lib/supabase";
 import { APP_NAME } from "@/lib/constants";
 
 type LoginMode = "first" | "returning";
 
 function LoginContent() {
-  const { isLoading } = useAuth();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const [mode, setMode] = useState<LoginMode>("first");
@@ -36,7 +34,7 @@ function LoginContent() {
 
     if (signInError) throw signInError;
 
-    await fetch("/api/auth/record-login", { method: "POST" }).catch(() => null);
+    void fetch("/api/auth/record-login", { method: "POST" }).catch(() => null);
     window.location.replace("/events");
   };
 
@@ -259,10 +257,10 @@ function LoginContent() {
 
           <button
             type="submit"
-            disabled={isLoading || isSubmitting}
+            disabled={isSubmitting}
             className="flex w-full items-center justify-center gap-3 rounded-xl bg-primary-500 px-4 py-3.5 text-sm font-semibold text-white transition-colors active:bg-primary-600 disabled:opacity-50"
           >
-            {isLoading || isSubmitting ? (
+            {isSubmitting ? (
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               mode === "first" ? "Create PIN & enter" : "Sign in"

@@ -6,7 +6,51 @@ import { queryClient } from "@/lib/query-client";
 import { useAuthUIStore } from "@/store/auth.store";
 import { useAppStore } from "@/store/app.store";
 import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
+import { isAdminEmail } from "@/lib/auth-rules";
 import type { Profile, UserRole } from "@/types";
+
+const AUTH_TIMEOUT_MS = 5000;
+
+async function withTimeout<T>(promise: PromiseLike<T>, message: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), AUTH_TIMEOUT_MS);
+    });
+
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+}
+
+function fallbackProfile(userId: string, email: string): Profile {
+    const normalizedEmail = email.toLowerCase();
+    const fullName = normalizedEmail
+        .split("@")[0]
+        .split(/[._-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+
+    return {
+        id: userId,
+        full_name: fullName || normalizedEmail,
+        email: normalizedEmail,
+        role: isAdminEmail(normalizedEmail) ? "admin" : "student",
+        section_id: null,
+        roll_number: null,
+        avatar_url: null,
+        phone_number: null,
+        about_me: null,
+        fcm_token: null,
+        is_active: true,
+        promoted_by: null,
+        promoted_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useSessionKeepAlive();
 
     const fetchProfile = useCallback(async (userId: string) => {
-        const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+        const { data } = await withTimeout(
+            supabase.from("profiles").select("*").eq("id", userId).single(),
+            "Profile lookup timed out",
+        );
         if (data) setProfile(data as Profile);
         return data as Profile | null;
     }, []);
@@ -57,8 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return null;
             }
 
-            const existing = await fetchProfile(userId);
-            if (existing) return existing;
+            try {
+                const existing = await fetchProfile(userId);
+                if (existing) return existing;
+            } catch (err) {
+                console.warn("[Auth] Profile lookup slow, using temporary profile:", err);
+                const temporary = fallbackProfile(userId, email);
+                setProfile(temporary);
+                return temporary;
+            }
 
             alert("Your profile is not ready yet. Kindly reach out to the O-Week team for assistance.");
             await supabase.auth.signOut();
@@ -100,7 +154,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 const {
                     data: { session },
-                } = await supabase.auth.getSession();
+                } = await withTimeout(
+                    supabase.auth.getSession(),
+                    "Session lookup timed out",
+                );
 
                 if (session?.user) {
                     await handleSignIn(session.user.id, session.user.email);

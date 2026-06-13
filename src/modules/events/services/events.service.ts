@@ -139,6 +139,8 @@ export async function createEvent(form: EventFormData, userId: string): Promise<
 
   if (eventError) throw new Error(`Failed to create event: ${eventError.message}`);
 
+  void createEventReminder(event as Event, userId);
+
   // 2. Build assignment rows based on visibility scope
   const assignments = buildAssignmentRows(
     event.id,
@@ -158,6 +160,28 @@ export async function createEvent(form: EventFormData, userId: string): Promise<
   }
 
   return { ...event, event_assignments: [] } as EventWithAssignments;
+}
+
+async function createEventReminder(event: Event, userId: string): Promise<void> {
+  const reminderAt = new Date(new Date(event.starts_at).getTime() - 15 * 60 * 1000);
+  if (reminderAt.getTime() <= Date.now()) return;
+
+  const { error } = await supabase.from("notifications").insert({
+    title: `Reminder: ${event.title}`,
+    body: event.venue
+      ? `${event.title} starts in 15 minutes at ${event.venue}.`
+      : `${event.title} starts in 15 minutes.`,
+    deep_link: `/events/${event.id}`,
+    visibility: "all",
+    status: "scheduled",
+    event_id: event.id,
+    scheduled_at: reminderAt.toISOString(),
+    created_by: userId,
+  });
+
+  if (error) {
+    console.warn("Failed to create event reminder:", error.message);
+  }
 }
 
 export async function updateEvent(
