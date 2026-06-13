@@ -48,8 +48,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "notification_id is required" }, { status: 400 });
         }
 
-        // 3. Initialise server-side singletons
-        ensureFirebaseAdmin();
+        // 3. Initialise the Supabase service client. Firebase is optional:
+        // when it is not configured, we still publish the alert in-app.
         const supabase = getServiceSupabase();
 
         // 4. Verify admin role + fetch notification in parallel (independent queries)
@@ -99,9 +99,23 @@ export async function POST(request: Request) {
                 if (recipients.length === 0) {
                     await supabase
                         .from("notifications")
-                        .update({ status: "failed", sent_at: new Date().toISOString() })
+                        .update({ status: "sent", sent_at: new Date().toISOString() })
                         .eq("id", notif.id);
-                    console.warn(`${LOG_PREFIX} No recipients with FCM tokens: notif=${notif.id}`);
+                    console.warn(`${LOG_PREFIX} No FCM tokens; published in-app only: notif=${notif.id}`);
+                    return;
+                }
+
+                try {
+                    ensureFirebaseAdmin();
+                } catch (firebaseErr) {
+                    await supabase
+                        .from("notifications")
+                        .update({ status: "sent", sent_at: new Date().toISOString() })
+                        .eq("id", notif.id);
+                    console.warn(
+                        `${LOG_PREFIX} Firebase unavailable; published in-app only: notif=${notif.id}`,
+                        firebaseErr,
+                    );
                     return;
                 }
 
